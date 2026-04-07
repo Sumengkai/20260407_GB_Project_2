@@ -114,6 +114,18 @@
             </div>
           </div>
           <div class="form-row">
+            <div class="form-cell lbl sys-lbl">產出批號總覽</div>
+            <div class="form-cell inp c3">
+              <div class="lot-overview">
+                <div v-if="!lotOverview.length" class="lot-ov-empty">— 尚無產出批號 —</div>
+                <div v-for="item in lotOverview" :key="item.proc" class="lot-ov-row">
+                  <span class="lot-ov-proc">{{ item.proc }}產出批號</span>
+                  <span class="lot-ov-lots">{{ item.lots }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
             <div class="form-cell lbl sys-lbl">系統備註</div>
             <div class="form-cell inp c3">
               <div class="sys-log">
@@ -379,11 +391,20 @@ const customerLabel = computed(() => {
 const PROC_NAME = { machining:'機加工', coating:'鍍膜', purification:'純化' }
 const SEC_NAME  = { self:'自產', outsource:'委外' }
 
-// 寫入系統 LOG
-function addLog(msg, level = 'info') {
+// 寫入系統 LOG（同 key 只記錄一次）
+function addLog(msg, level = 'info', key = null) {
+  if (key && d5.sysLog.some(e => e.key === key)) return
   const now = new Date()
   const time = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`
-  d5.sysLog.push({ time, msg, level })
+  d5.sysLog.push({ time, msg, level, key })
+}
+function removeLog(key) {
+  const idx = d5.sysLog.findIndex(e => e.key === key)
+  if (idx >= 0) d5.sysLog.splice(idx, 1)
+}
+function procCount(proc, type) {
+  const p = getProc(proc)
+  return p[type].self.length + p[type].outsource.length
 }
 
 // 依委託類型動態顯示頁籤（需在 d5 定義後）
@@ -422,7 +443,6 @@ const order = reactive({ qty:null, remark:'' })
 function orderSave() {
   if (!d5.id) { showMsg('請先完成 D5 申請單並確認轉訂單', 'error'); return }
   if (!order.qty) { showMsg('數量為必填欄位', 'error'); return }
-  addLog(`儲存訂單，數量：${order.qty}`, 'info')
   showMsg('訂單資料已儲存', 'success')
 }
 
@@ -472,7 +492,8 @@ function confirmPicker() {
   })
   const count = picker.selIds.size
   picker.show = false
-  addLog(`輸入【${PROC_NAME[picker.proc]}(耗用)】${SEC_NAME[picker.section]}：${names.join('、')}（${count} 筆）`, 'input')
+  const logKey = `consumption-${picker.proc}`
+  addLog(`輸入【${PROC_NAME[picker.proc]}(耗用)】`, 'input', logKey)
   showMsg(`已確認耗用 ${count} 筆：${names.join('、')}`, 'success')
   picker.selIds.clear()
 }
@@ -480,25 +501,40 @@ function cancelConsumption(procName, { section, ids }) {
   const idSet = new Set(ids)
   const arr = getProc(procName).consumption[section]
   arr.splice(0, arr.length, ...arr.filter(r => !idSet.has(r.id)))
-  addLog(`取消【${PROC_NAME[procName]}(耗用)】${SEC_NAME[section]}：${idSet.size} 筆`, 'cancel')
+  if (procCount(procName, 'consumption') === 0) removeLog(`consumption-${procName}`)
   showMsg(`已取消 ${idSet.size} 筆耗用`, 'info')
 }
 
 // 產出明細處理（行內新增/修改/刪除）
 function handleOutputAdd(proc, { section, row }) {
   getProc(proc).output[section].push({ ...row, id: Date.now() })
-  const label = row.productKey || '（未知品名）'
-  addLog(`輸入【${PROC_NAME[proc]}(產出)】${SEC_NAME[section]}：${label}，數量 ${row.qty}`, 'input')
+  addLog(`輸入【${PROC_NAME[proc]}(產出)】`, 'input', `output-${proc}`)
   showMsg('產出明細已新增', 'success')
 }
 function handleOutputUpdate(proc, { section, idx, row }) {
   const arr = getProc(proc).output[section]
   arr[idx] = { ...row, id: arr[idx].id }
-  addLog(`修改【${PROC_NAME[proc]}(產出)】${SEC_NAME[section]}：${row.productKey}，數量 ${row.qty}`, 'edit')
   showMsg('產出明細已修改', 'success')
 }
 // 品檢資訊
 const qualityData = reactive({}) // { lotNo: [{ id, item, standard, actual, judgment, remark }] }
+
+// 批號總覽：收集各製程產出的所有批號（去重、過濾空值）
+const lotOverview = computed(() => {
+  const entries = [
+    { proc: '機加工', data: machining.output },
+    { proc: '鍍膜',   data: coating.output   },
+    { proc: '純化',   data: purification.output },
+  ]
+  return entries.reduce((acc, { proc, data }) => {
+    const lots = [...new Set(
+      [...data.self, ...data.outsource]
+        .map(r => r.lotNo).filter(Boolean)
+    )]
+    if (lots.length) acc.push({ proc, lots: lots.join('、') })
+    return acc
+  }, [])
+})
 
 const allLots = computed(() => {
   const lots = [], seen = new Set()
@@ -521,20 +557,19 @@ const allLots = computed(() => {
 function handleQualityAdd({ lotNo, row }) {
   if (!qualityData[lotNo]) qualityData[lotNo] = []
   qualityData[lotNo].push({ ...row, id: Date.now() })
-  addLog(`輸入【品檢資訊】批號 ${lotNo}：${row.item}`, 'input')
+  addLog(`輸入【品檢資訊】批號 ${lotNo}`, 'input', `quality-${lotNo}`)
   showMsg(`品檢資料已新增：${row.item}`, 'success')
 }
 function handleQualityUpdate({ lotNo, idx, row }) {
   const arr = qualityData[lotNo]
-  if (arr) { arr[idx] = { ...row, id: arr[idx].id }; addLog(`修改【品檢資訊】批號 ${lotNo}：${row.item}`, 'edit'); showMsg('品檢資料已修改', 'success') }
+  if (arr) { arr[idx] = { ...row, id: arr[idx].id }; showMsg('品檢資料已修改', 'success') }
 }
 function handleQualityDelete({ lotNo, ids }) {
   const idSet = new Set(ids)
   if (!qualityData[lotNo]) return
-  const removed = idSet.size
   qualityData[lotNo].splice(0, qualityData[lotNo].length, ...qualityData[lotNo].filter(r => !idSet.has(r.id)))
-  addLog(`刪除【品檢資訊】批號 ${lotNo}：${removed} 筆`, 'cancel')
-  showMsg(`已刪除 ${removed} 筆品檢資料`, 'info')
+  if (!qualityData[lotNo].length) removeLog(`quality-${lotNo}`)
+  showMsg(`已刪除 ${idSet.size} 筆品檢資料`, 'info')
 }
 
 function handleOutputDelete(proc, { section, ids }) {
@@ -542,7 +577,7 @@ function handleOutputDelete(proc, { section, ids }) {
   const arr = getProc(proc).output[section]
   const removed = idSet.size
   arr.splice(0, arr.length, ...arr.filter(r => !idSet.has(r.id)))
-  addLog(`刪除【${PROC_NAME[proc]}(產出)】${SEC_NAME[section]}：${removed} 筆`, 'cancel')
+  if (procCount(proc, 'output') === 0) removeLog(`output-${proc}`)
   showMsg(`已刪除 ${removed} 筆產出明細`, 'info')
 }
 </script>
@@ -658,6 +693,17 @@ function handleOutputDelete(proc, { section, ids }) {
 .c3  { grid-column:span 3; }
 .c4  { grid-column:span 4; }
 .sys-lbl { background:#d8d8d8; color:#555; }
+
+/* 批號總覽 */
+.lot-overview {
+  width: 100%; background: #f5f9ff; border: 1px solid #d0dce8;
+  border-radius: 3px; padding: 5px 8px;
+  display: flex; flex-direction: column; gap: 3px; min-height: 32px;
+}
+.lot-ov-empty { color: #aaa; font-style: italic; font-size: 12px; }
+.lot-ov-row   { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.lot-ov-proc  { color: #2a5aaf; font-weight: bold; white-space: nowrap; min-width: 90px; }
+.lot-ov-lots  { color: #1a2b4a; }
 
 /* 系統 LOG */
 .sys-log {
