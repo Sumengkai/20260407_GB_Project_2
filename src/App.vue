@@ -9,6 +9,22 @@
       </div>
     </div>
 
+    <!-- 查詢列 -->
+    <div class="query-bar">
+      <span class="query-label">申請單單號</span>
+      <div class="query-input-wrap">
+        <span class="query-icon">🔍</span>
+        <input
+          v-model="queryNo"
+          type="text"
+          class="query-input"
+          placeholder="請輸入申請單單號"
+          @keyup.enter="doQuery"
+        />
+      </div>
+      <button class="btn btn-query" @click="doQuery">查詢</button>
+    </div>
+
     <!-- 訊息列 -->
     <div class="message-bar">
       <span class="msg-label">訊息</span>
@@ -294,12 +310,26 @@ const currentDate = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,
 
 // 頁籤
 // 全部頁籤定義（固定索引）
+// 頁籤
 const tabs = ['D5申請單','訂單','機加工(耗用)','機加工(產出)','鍍膜(耗用)','鍍膜(產出)','純化(耗用)','純化(產出)']
 const activeTab = ref(0)
 
 // 訊息
 const message = reactive({ text: '歡迎使用本系統...', type: 'info' })
 const showMsg = (text, type='info') => { message.text = text; message.type = type }
+
+// 查詢
+const queryNo = ref('')
+function doQuery() {
+  const q = queryNo.value.trim()
+  if (!q) { showMsg('請輸入申請單單號', 'error'); return }
+  if (d5.id && d5.id.toUpperCase() === q.toUpperCase()) {
+    activeTab.value = 0
+    showMsg(`查詢成功：已載入申請單 ${d5.id}`, 'success')
+  } else {
+    showMsg(`查無申請單：${q}`, 'error')
+  }
+}
 
 // D5 資料（欄位直接開放輸入，按新增完成建檔）
 const d5 = reactive({
@@ -435,6 +465,54 @@ function handleOutputDelete(proc, { section, ids }) {
 }
 .header-title { font-size:16px; font-weight:bold; letter-spacing:1px; }
 .header-info  { font-size:12px; display:flex; gap:16px; opacity:.9; }
+
+/* 查詢列 */
+.query-bar {
+  background: #c8d8ec;
+  border-bottom: 1px solid #a0b8d8;
+  padding: 5px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.query-label {
+  background: #3a6abf;
+  color: #fff;
+  padding: 2px 10px;
+  border-radius: 3px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.query-input-wrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid #8aaad0;
+  border-radius: 3px;
+  background: #fff;
+  overflow: hidden;
+  width: 220px;
+}
+.query-icon { padding: 0 6px; font-size: 12px; color: #7a9ac8; }
+.query-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 3px 4px;
+  font-size: 13px;
+  font-family: inherit;
+  background: transparent;
+}
+.btn-query {
+  background: #3a6abf;
+  color: #fff;
+  border: 1px solid #2a5aaf;
+  padding: 3px 14px;
+  font-size: 12px;
+  font-family: inherit;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.btn-query:hover { filter: brightness(1.1); }
 
 /* 訊息列 */
 .message-bar {
