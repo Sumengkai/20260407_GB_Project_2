@@ -283,6 +283,9 @@
       <div class="modal">
         <div class="modal-hdr">
           <span>挑選庫存</span>
+          <span class="picker-src">
+            {{ picker.section === 'self' ? '來源：BB 碳材料生產工廠' : '來源：不限庫別' }}
+          </span>
           <span class="picker-count" v-if="picker.selIds.size">已選 {{ picker.selIds.size }} 筆</span>
           <button class="modal-x" @click="picker.show = false">✕</button>
         </div>
@@ -310,7 +313,7 @@
                   <input type="checkbox" :checked="picker.selIds.has(i)" @change="pickerToggleOne(i)" />
                 </td>
                 <td>{{ inv.itemNo }}</td><td>{{ inv.itemName }}</td>
-                <td>{{ inv.warehouse }}</td><td>{{ inv.lotNo }}</td>
+                <td>{{ WAREHOUSE_LABEL[inv.warehouse] ?? inv.warehouse }}</td><td>{{ inv.lotNo }}</td>
                 <td>{{ inv.qty }}</td><td>{{ inv.unit }}</td>
               </tr>
               <tr v-if="!filteredInv.length">
@@ -453,19 +456,32 @@ const coating      = reactive(mkProc())
 const purification = reactive(mkProc())
 const getProc = n => ({machining,coating,purification}[n])
 
-// 庫存資料
+// 庫別代碼對照
+const WAREHOUSE_LABEL = { BB:'碳材料生產工廠', BBPN:'D8屏南儲區', BBOUTTMP:'委外暫存庫' }
+
+// 庫存假資料（含庫別代碼）
 const allInv = [
-  { itemNo:'ACS15U', itemName:'超級電容ACS15U',   warehouse:'A小港廠', lotNo:'L-001', qty:500, unit:'kg'  },
-  { itemNo:'GC-001', itemName:'石墨化碳材料',      warehouse:'A小港廠', lotNo:'L-002', qty:200, unit:'kg'  },
-  { itemNo:'CB-050', itemName:'碳微球CB-050',      warehouse:'B倉庫',   lotNo:'L-003', qty:150, unit:'kg'  },
-  { itemNo:'PG-100', itemName:'純化石墨PG-100',    warehouse:'A小港廠', lotNo:'L-004', qty:80,  unit:'kg'  },
-  { itemNo:'MC-200', itemName:'機加工碳塊MC-200',  warehouse:'C倉庫',   lotNo:'L-005', qty:320, unit:'pcs' },
+  { itemNo:'ACS15U', itemName:'超級電容ACS15U',  warehouse:'BB',       lotNo:'GB-001', qty:500, unit:'kg'  },
+  { itemNo:'GC-001', itemName:'石墨化碳材料',     warehouse:'BB',       lotNo:'GB-002', qty:200, unit:'kg'  },
+  { itemNo:'CB-050', itemName:'碳微球CB-050',     warehouse:'BB',       lotNo:'GB-003', qty:150, unit:'kg'  },
+  { itemNo:'PG-100', itemName:'純化石墨PG-100',   warehouse:'BBPN',     lotNo:'GB-004', qty:80,  unit:'kg'  },
+  { itemNo:'MC-200', itemName:'機加工碳塊MC-200', warehouse:'BBPN',     lotNo:'GB-005', qty:320, unit:'pcs' },
+  { itemNo:'CF-300', itemName:'碳纖維CF-300',     warehouse:'BBOUTTMP', lotNo:'GB-006', qty:100, unit:'kg'  },
+  { itemNo:'GR-400', itemName:'石墨電極GR-400',   warehouse:'BBOUTTMP', lotNo:'GB-007', qty:60,  unit:'pcs' },
 ]
+
+// 自產：只允許 BB；委外：不限庫別
+function getBaseInv() {
+  return picker.section === 'self' ? allInv.filter(i => i.warehouse === 'BB') : allInv
+}
+
 const filteredInv = ref([...allInv])
 const picker = reactive({ show:false, keyword:'', selIds: new Set(), proc:'', section:'' })
 function filterInv() {
   const kw = picker.keyword.toLowerCase()
-  filteredInv.value = allInv.filter(i => i.itemNo.toLowerCase().includes(kw) || i.itemName.toLowerCase().includes(kw))
+  filteredInv.value = getBaseInv().filter(i =>
+    i.itemNo.toLowerCase().includes(kw) || i.itemName.toLowerCase().includes(kw)
+  )
   picker.selIds.clear()
 }
 function pickerToggleOne(i) {
@@ -478,7 +494,8 @@ function pickerToggleAll(checked) {
 }
 function openPicker({ section }, procName) {
   picker.proc = procName; picker.section = section
-  picker.keyword = ''; picker.selIds.clear(); filteredInv.value = [...allInv]
+  picker.keyword = ''; picker.selIds.clear()
+  filteredInv.value = getBaseInv()
   picker.show = true
 }
 function confirmPicker() {
@@ -766,6 +783,7 @@ function handleOutputDelete(proc, { section, ids }) {
 .modal    { background:#fff; border-radius:6px; box-shadow:0 8px 32px rgba(0,0,0,.35); min-width:700px; max-width:92vw; max-height:86vh; display:flex; flex-direction:column; }
 .modal-sm { min-width:440px; }
 .modal-hdr { background:linear-gradient(135deg,#1a3a6e,#2855a0); color:#fff; padding:8px 16px; border-radius:6px 6px 0 0; display:flex; align-items:center; gap:10px; font-weight:bold; }
+.picker-src   { font-size:11px; background:rgba(255,255,255,.15); padding:1px 8px; border-radius:8px; opacity:.9; }
 .picker-count { font-size:12px; background:rgba(255,255,255,.2); padding:1px 8px; border-radius:8px; margin-left:4px; }
 .modal-hdr .modal-x { margin-left:auto; }
 .modal-x  { background:none; border:none; color:#fff; font-size:16px; cursor:pointer; padding:0 4px; }
