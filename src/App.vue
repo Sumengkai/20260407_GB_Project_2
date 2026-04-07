@@ -614,10 +614,7 @@ function handleOutputDelete(proc, { section, ids }) {
   padding:4px 16px; display:flex; align-items:center; gap:8px; min-height:28px;
 }
 .msg-label { background:#3a6abf; color:#fff; padding:1px 8px; border-radius:3px; font-size:12px; white-space:nowrap; }
-.msg-text { font-size:13px; }
-.msg-text.info    { color:#1a3a6e; }
-.msg-text.success { color:#155724; font-weight:bold; }
-.msg-text.error   { color:#c0392b; font-weight:bold; }
+.msg-text { font-size:13px; color:#c0392b; font-weight:bold; }
 
 /* 頁籤導覽 */
 .tab-nav {
