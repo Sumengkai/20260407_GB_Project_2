@@ -1,195 +1,262 @@
 <template>
   <div>
-    <!-- 批號選擇列 -->
-    <div class="lot-bar">
-      <span class="lot-label">批號</span>
-      <select v-model="selectedLot" class="lot-select">
-        <option value="">— 請選擇批號 —</option>
-        <option v-for="lot in lots" :key="lot.lotNo" :value="lot.lotNo">
-          {{ lot.lotNo }}（{{ lot.productKey }} ｜ {{ lot.procName }}{{ lot.section }}）
-        </option>
-      </select>
-      <span v-if="selectedLotInfo" class="lot-info">
-        品名：{{ selectedLotInfo.productKey }} ／ 製程：{{ selectedLotInfo.procName }}{{ selectedLotInfo.section }}
-      </span>
+    <!-- 製程選擇列 -->
+    <div class="proc-bar">
+      <span class="proc-label">製程</span>
+      <div class="proc-btns">
+        <button
+          v-for="p in PROCS" :key="p.key"
+          :class="['proc-btn', { active: selectedProc === p.key }]"
+          @click="selectedProc = p.key"
+        >{{ p.label }}</button>
+      </div>
     </div>
 
-    <div v-if="!selectedLot" class="no-lot-hint">請先從上方下拉選單選擇批號，以查看或新增品檢資訊</div>
+    <div v-if="!selectedProc" class="no-hint">請先選擇製程以查看品檢資訊</div>
 
     <template v-else>
-      <div class="section-bar">
-        <span class="section-title">品檢項目</span>
-        <button class="btn btn-primary" @click="handleAdd">新增</button>
-        <button class="btn btn-warn"   :disabled="checkedIds.size === 0" @click="handleEdit">修改</button>
-        <button class="btn btn-danger" :disabled="checkedIds.size === 0" @click="handleDelete">
-          刪除<span v-if="checkedIds.size" class="badge">{{ checkedIds.size }}</span>
-        </button>
+      <div v-if="!filteredGroups.length" class="no-hint">
+        此製程目前無產出批號，請先至對應產出頁籤新增資料
       </div>
 
-      <div class="table-wrap">
-        <table class="dtable">
-          <thead>
-            <tr>
-              <th width="36">勾選</th>
-              <th>品檢項目</th>
-              <th>標準值</th>
-              <th>實測值</th>
-              <th>判定</th>
-              <th>備註</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- 已存資料列（永遠顯示輸入框） -->
-            <tr v-for="row in currentRows" :key="row.id"
-                :class="{ 'row-checked': checkedIds.has(row.id) }">
-              <td><input type="checkbox" :checked="checkedIds.has(row.id)" @change="toggleCheck(row.id)" /></td>
-              <td><input v-if="editForms[row.id]" v-model="editForms[row.id].item"     class="cell-input req" placeholder="品檢項目*" /></td>
-              <td><input v-if="editForms[row.id]" v-model="editForms[row.id].standard" class="cell-input" placeholder="標準值" /></td>
-              <td><input v-if="editForms[row.id]" v-model="editForms[row.id].actual"   class="cell-input" placeholder="實測值" /></td>
-              <td>
-                <select v-if="editForms[row.id]" v-model="editForms[row.id].judgment" class="cell-input cell-select">
-                  <option value="">—</option>
-                  <option value="pass">合格</option>
-                  <option value="fail">不合格</option>
-                </select>
-              </td>
-              <td><input v-if="editForms[row.id]" v-model="editForms[row.id].remark" class="cell-input" placeholder="備註" /></td>
-            </tr>
+      <!-- 依產品分組顯示 -->
+      <div v-for="group in filteredGroups" :key="group.productKey" class="product-section">
+        <div class="product-hdr">
+          <span class="product-badge">產品</span>
+          <span class="product-title">{{ PRODUCT_LABEL[group.productKey] ?? group.productKey }}</span>
+          <span class="product-meta">{{ selectedProcLabel }} ｜ {{ group.lots.length }} 批</span>
+        </div>
 
-            <!-- 新增輸入列 -->
-            <tr class="new-row" :class="{ 'new-row-checked': newRow.checked }">
-              <td><input type="checkbox" v-model="newRow.checked" /></td>
-              <td><input v-model="newRow.item"     class="cell-input req" placeholder="品檢項目*" /></td>
-              <td><input v-model="newRow.standard" class="cell-input" placeholder="標準值" /></td>
-              <td><input v-model="newRow.actual"   class="cell-input" placeholder="實測值" /></td>
-              <td>
-                <select v-model="newRow.judgment" class="cell-input cell-select">
-                  <option value="">—</option>
-                  <option value="pass">合格</option>
-                  <option value="fail">不合格</option>
-                </select>
-              </td>
-              <td><input v-model="newRow.remark" class="cell-input" placeholder="備註" /></td>
-            </tr>
-
-            <tr v-if="!currentRows.length">
-              <td colspan="6" class="hint-row">請在最下方輸入列填寫品檢資料，勾選後點擊「新增」</td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-wrap">
+          <table class="dtable">
+            <thead>
+              <tr>
+                <th class="col-lot">批號</th>
+                <th v-for="col in cols(group.productKey)" :key="col.key" class="col-param">{{ col.label }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="lot in group.lots" :key="lot.lotNo" class="data-row">
+                <td class="td-lot">{{ lot.lotNo }}</td>
+                <td v-for="col in cols(group.productKey)" :key="col.key">
+                  <input
+                    type="text"
+                    class="cell-input"
+                    :value="getVal(lot.lotNo, col.key)"
+                    @change="onChange(lot.lotNo, col.key, $event.target.value)"
+                    :placeholder="col.std ?? ''"
+                  />
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="spec-row">
+                <td class="spec-hdr">內控規格值</td>
+                <td v-for="col in cols(group.productKey)" :key="col.key" class="spec-val">
+                  {{ col.std ?? '—' }}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       </div>
     </template>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 
 const props = defineProps({
-  lots:        { type: Array,  default: () => [] },
+  allLots:     { type: Array,  default: () => [] },
   qualityData: { type: Object, default: () => ({}) },
 })
-const emit = defineEmits(['add', 'update', 'delete-items'])
+const emit = defineEmits(['change'])
 
-const selectedLot     = ref('')
-const selectedLotInfo = computed(() => props.lots.find(l => l.lotNo === selectedLot.value) ?? null)
-const currentRows     = computed(() => props.qualityData[selectedLot.value] ?? [])
+// ── 製程定義 ──────────────────────────────────────
+const PROCS = [
+  { key: '機加工', label: '機加工(產出)' },
+  { key: '鍍膜',   label: '鍍膜(產出)'   },
+  { key: '純化',   label: '純化(產出)'   },
+]
+const selectedProc = ref('')
+const selectedProcLabel = computed(() => PROCS.find(p => p.key === selectedProc.value)?.label ?? '')
 
-// 每列的本地編輯表單
-const editForms = reactive({})
-
-watch(currentRows, (newRows) => {
-  newRows.forEach(row => {
-    if (!editForms[row.id]) editForms[row.id] = { ...row }
-  })
-  const ids = new Set(newRows.map(r => r.id))
-  Object.keys(editForms).forEach(k => {
-    if (!ids.has(Number(k))) delete editForms[k]
-  })
-}, { immediate: true, deep: true })
-
-// 勾選
-const checkedIds = reactive(new Set())
-function toggleCheck(id) {
-  if (checkedIds.has(id)) checkedIds.delete(id)
-  else checkedIds.add(id)
+// ── 產品品名對照 ──────────────────────────────────
+const PRODUCT_LABEL = {
+  'ACS15U': 'ACS15U - 超級電容ACS15U',
+  'GC-001': 'GC-001 - 石墨化碳材料',
+  'CB-050': 'CB-050 - 碳微球CB-050',
+  'PG-100': 'PG-100 - 純化石墨PG-100',
+  'MC-200': 'MC-200 - 機加工碳塊MC-200',
+  'CF-300': 'CF-300 - 碳纖維CF-300',
+  'GR-400': 'GR-400 - 石墨電極GR-400',
+  'BC-500': 'BC-500 - 電池碳材BC-500',
 }
 
-// 新增輸入列
-function emptyForm() { return { item:'', standard:'', actual:'', judgment:'', remark:'' } }
-const newRow = reactive({ checked: false, ...emptyForm() })
-function resetNew() { Object.assign(newRow, { checked: false, ...emptyForm() }) }
-
-// 新增
-function handleAdd() {
-  if (!newRow.checked) { alert('請先勾選新增列的方框'); return }
-  if (!newRow.item)    { alert('品檢項目為必填欄位'); return }
-  emit('add', { lotNo: selectedLot.value, row: { ...emptyForm(), ...newRow } })
-  resetNew()
+// ── 各品項品檢欄位定義 ────────────────────────────
+const QUALITY_COLS = {
+  'GC-001': [
+    { key: 'yield',  label: 'Yield%',        std: '>97'       },
+    { key: 'ti',     label: 'TI%',           std: '>97'       },
+    { key: 'qi',     label: 'QI%',           std: '>95'       },
+    { key: 'fc',     label: 'F.C.%',         std: '>95.50'    },
+    { key: 'ash',    label: 'Ash%',          std: '<0.2'      },
+    { key: 'vm',     label: 'VM%',           std: '6.0-8.5'   },
+    { key: 'h2o',    label: 'H2O%',          std: '<0.30'     },
+    { key: 'tapd',   label: 'Tap D.(g/ml)',  std: '≥0.75'     },
+    { key: 'lt5',    label: '%<5μm,%',       std: '<2.0'      },
+    { key: 'lt88',   label: '%<88μm,%',      std: '100'       },
+    { key: 'd10',    label: 'D10%,μm',       std: '17-21'     },
+    { key: 'd50',    label: 'D50%,μm',       std: '25.3-28.0' },
+    { key: 'd90',    label: 'D90%,μm',       std: '35-41'     },
+    { key: 'd95',    label: 'D95%,μm',       std: '≤65'       },
+    { key: 'd100',   label: 'D100%,μm',      std: ''          },
+  ],
+  'ACS15U': [
+    { key: 'yield',  label: 'Yield%',           std: '>90'   },
+    { key: 'bet',    label: 'BET(m²/g)',         std: '>1500' },
+    { key: 'cap',    label: '電容量(F/g)',        std: '>100'  },
+    { key: 'resist', label: '電阻率(mΩ·cm)',      std: '<5'    },
+    { key: 'h2o',    label: '水分(%)',            std: '<2'    },
+    { key: 'ash',    label: '灰分(%)',            std: '<0.5'  },
+  ],
+  'CB-050': [
+    { key: 'yield',      label: 'Yield%',         std: '>85'      },
+    { key: 'd50',        label: 'D50(μm)',         std: '45-55'    },
+    { key: 'd90',        label: 'D90(μm)',         std: '<100'     },
+    { key: 'tapd',       label: '振實密度(g/ml)',  std: '>0.4'     },
+    { key: 'sphericity', label: '球形度',          std: '>0.90'    },
+    { key: 'h2o',        label: '水分(%)',         std: '<1'       },
+    { key: 'ash',        label: '灰分(%)',         std: '<0.3'     },
+  ],
+  'PG-100': [
+    { key: 'purity', label: '純度(%)',          std: '>99.9' },
+    { key: 'ash',    label: '灰分(ppm)',        std: '<100'  },
+    { key: 'mag',    label: '磁性物質(ppm)',    std: '<50'   },
+    { key: 'd50',    label: 'D50(μm)',          std: '20-30' },
+    { key: 'bet',    label: '比表面積(m²/g)',   std: '<10'   },
+    { key: 'h2o',    label: '水分(%)',          std: '<0.5'  },
+  ],
+  'MC-200': [
+    { key: 'weight',  label: '重量(g)',        std: ''     },
+    { key: 'length',  label: '長(mm)',         std: ''     },
+    { key: 'width',   label: '寬(mm)',         std: ''     },
+    { key: 'height',  label: '高(mm)',         std: ''     },
+    { key: 'density', label: '密度(g/cm³)',    std: '>1.7' },
+    { key: 'appear',  label: '外觀',           std: 'OK'   },
+  ],
+  'CF-300': [
+    { key: 'tensile', label: '拉伸強度(MPa)',   std: '>3000' },
+    { key: 'modulus', label: '拉伸模量(GPa)',   std: '>200'  },
+    { key: 'elong',   label: '斷裂伸長率(%)',   std: '>1.5'  },
+    { key: 'lindens', label: '線密度(tex)',     std: ''      },
+    { key: 'ash',     label: '灰分(%)',         std: '<0.3'  },
+  ],
+  'GR-400': [
+    { key: 'resist',  label: '電阻率(μΩm)',    std: '<8'   },
+    { key: 'flex',    label: '抗折強度(MPa)',  std: '>10'  },
+    { key: 'modulus', label: '彈性模量(GPa)',  std: ''     },
+    { key: 'ash',     label: '灰分(%)',        std: '<0.3' },
+    { key: 'density', label: '體積密度(g/cm³)',std: '>1.6' },
+  ],
+  'BC-500': [
+    { key: 'yield', label: 'Yield%',          std: '>92'  },
+    { key: 'ice',   label: '首效(%)',          std: '>88'  },
+    { key: 'cap',   label: '容量(mAh/g)',      std: '>340' },
+    { key: 'd50',   label: 'D50(μm)',          std: '15-25'},
+    { key: 'bet',   label: '比表面積(m²/g)',   std: '<2'   },
+    { key: 'tapd',  label: '振實密度(g/ml)',   std: '>0.8' },
+  ],
 }
 
-// 修改（直接用各列的 editForm 覆蓋）
-function handleEdit() {
-  if (!checkedIds.size) return
-  let hasError = false
-  checkedIds.forEach(id => {
-    const form = editForms[id]
-    if (!form || !form.item) { hasError = true; return }
-    const idx = currentRows.value.findIndex(r => r.id === id)
-    if (idx >= 0) emit('update', { lotNo: selectedLot.value, idx, row: { ...form } })
+function cols(productKey) {
+  return QUALITY_COLS[productKey] ?? [{ key: 'remark', label: '備註', std: '' }]
+}
+
+// ── 依製程過濾並依產品分組 ────────────────────────
+const filteredGroups = computed(() => {
+  const filtered = props.allLots.filter(l => l.procName === selectedProc.value)
+  const map = new Map()
+  filtered.forEach(lot => {
+    if (!map.has(lot.productKey)) map.set(lot.productKey, [])
+    map.get(lot.productKey).push(lot)
   })
-  if (hasError) { alert('勾選列中有品檢項目未填，請確認後再修改'); return }
-  checkedIds.clear()
-}
+  return [...map.entries()].map(([productKey, lots]) => ({ productKey, lots }))
+})
 
-// 刪除
-function handleDelete() {
-  if (!checkedIds.size) return
-  if (!confirm(`確定要刪除已勾選的 ${checkedIds.size} 筆品檢資料？`)) return
-  emit('delete-items', { lotNo: selectedLot.value, ids: [...checkedIds] })
-  checkedIds.clear()
+// ── 品檢數值存取 ──────────────────────────────────
+function getVal(lotNo, paramKey) {
+  return props.qualityData[lotNo]?.[paramKey] ?? ''
+}
+function onChange(lotNo, paramKey, value) {
+  emit('change', { lotNo, paramKey, value })
 }
 </script>
 
 <style scoped>
-.lot-bar {
+/* 製程選擇列 */
+.proc-bar {
   background: #d8e8f8; border-bottom: 1px solid #b0c4de;
-  padding: 7px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 7px 14px; display: flex; align-items: center; gap: 12px;
 }
-.lot-label { background: #3a6abf; color: #fff; padding: 2px 10px; border-radius: 3px; font-size: 12px; white-space: nowrap; }
-.lot-select { padding: 3px 8px; border: 1px solid #b0c4de; border-radius: 3px; font-size: 13px; font-family: inherit; background: #fff; min-width: 280px; }
-.lot-info   { font-size: 12px; color: #2a5aaf; background: #e8f0fc; padding: 2px 10px; border-radius: 3px; }
-.no-lot-hint { padding: 40px; text-align: center; color: #aaa; font-size: 13px; font-style: italic; }
+.proc-label {
+  background: #3a6abf; color: #fff;
+  padding: 2px 10px; border-radius: 3px; font-size: 12px; white-space: nowrap;
+}
+.proc-btns { display: flex; gap: 6px; }
+.proc-btn {
+  padding: 4px 14px; font-size: 12px; font-family: inherit;
+  border: 1px solid #8aaad0; border-radius: 3px;
+  background: #fff; color: #3a6abf; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.proc-btn:hover  { background: #e0ecff; }
+.proc-btn.active { background: #3a6abf; color: #fff; border-color: #2a5aaf; font-weight: bold; }
 
-.section-bar {
-  background: linear-gradient(90deg, #3a6abf, #5586d0);
+.no-hint { padding: 40px; text-align: center; color: #aaa; font-size: 13px; font-style: italic; }
+
+/* 產品區塊 */
+.product-section { margin: 10px 12px 16px; border: 1px solid #b8cfe8; border-radius: 4px; overflow: hidden; }
+.product-hdr {
+  background: linear-gradient(90deg, #2a5aaf, #4a7acf);
   color: #fff; padding: 6px 14px;
-  display: flex; align-items: center; gap: 8px;
-  border-bottom: 1px solid #2a5aaf;
+  display: flex; align-items: center; gap: 10px;
 }
-.section-title { font-weight: bold; font-size: 13px; min-width: 60px; margin-right: 4px; }
-.table-wrap { padding: 8px 12px; overflow-x: auto; }
+.product-badge {
+  background: rgba(255,255,255,.25); font-size: 11px;
+  padding: 1px 7px; border-radius: 10px;
+}
+.product-title { font-weight: bold; font-size: 13px; }
+.product-meta  { font-size: 12px; opacity: .85; margin-left: auto; }
 
-.dtable { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 560px; }
-.dtable th { background: #3a6abf; color: #fff; padding: 5px 8px; border: 1px solid #2a5aaf; white-space: nowrap; text-align: center; }
-.dtable td { padding: 3px 6px; border: 1px solid #d0dce8; text-align: center; }
-.dtable tr:nth-child(even) td { background: #f0f6ff; }
-.dtable tr:hover td           { background: #dceeff; }
-.row-checked td      { background: #d4e8ff !important; }
-.new-row td          { background: #f0fff4; }
-.new-row-checked td  { background: #d0f0e0 !important; }
-.hint-row { color: #aaa; text-align: center; padding: 12px; font-style: italic; }
+/* 表格 */
+.table-wrap { overflow-x: auto; }
+.dtable { width: 100%; border-collapse: collapse; font-size: 12px; }
+.dtable th {
+  background: #4a7acf; color: #fff;
+  padding: 5px 8px; border: 1px solid #3a6abf;
+  white-space: nowrap; text-align: center;
+}
+.col-lot   { min-width: 130px; }
+.col-param { min-width: 90px; }
+.dtable td { padding: 3px 5px; border: 1px solid #d0dce8; text-align: center; }
+.td-lot    { font-weight: 500; color: #1a4a9e; background: #eef4ff !important; white-space: nowrap; }
+.data-row:nth-child(even) td { background: #f5f8ff; }
+.data-row:hover td           { background: #dceeff; }
 
-.cell-input { width: 100%; padding: 2px 5px; border: 1px solid #b0c4de; border-radius: 2px; font-size: 12px; font-family: inherit; background: #fff; box-sizing: border-box; }
-.cell-input:focus { border-color: #3a6abf; outline: none; }
-.cell-input.req   { border-color: #c0392b; }
-.cell-select      { cursor: pointer; }
+/* 規格基準列 */
+.spec-row td { background: #fff8e6 !important; color: #7a5000; font-size: 11px; font-style: italic; }
+.spec-hdr    { font-weight: bold; text-align: right; padding-right: 8px; white-space: nowrap; color: #5a3800; }
+.spec-val    { text-align: center; }
 
-.btn { padding: 3px 10px; font-size: 12px; font-family: inherit; border: 1px solid; border-radius: 3px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
-.btn:hover    { filter: brightness(1.1); }
-.btn:disabled { opacity: .4; cursor: not-allowed; filter: none; }
-.btn-primary { background: #3a6abf; color: #fff; border-color: #2a5aaf; }
-.btn-warn    { background: #e67e22; color: #fff; border-color: #ca6f1e; }
-.btn-danger  { background: #c0392b; color: #fff; border-color: #a93226; }
-.badge { background: rgba(255,255,255,.9); color: #c0392b; font-size: 11px; font-weight: bold; padding: 0 5px; border-radius: 8px; min-width: 16px; text-align: center; }
+/* 儲存格輸入 */
+.cell-input {
+  width: 100%; padding: 2px 5px;
+  border: 1px solid #b0c4de; border-radius: 2px;
+  font-size: 12px; font-family: inherit; background: #fff;
+  box-sizing: border-box; text-align: center;
+}
+.cell-input:focus { border-color: #3a6abf; outline: none; background: #f0f8ff; }
+.cell-input::placeholder { color: #bbb; font-style: italic; }
 </style>

@@ -199,11 +199,9 @@
       <!-- ===== 7. 品檢資訊 ===== -->
       <div v-show="activeTab === 7" class="tab-panel">
         <QualityTab
-          :lots="allLots"
+          :all-lots="allLots"
           :quality-data="qualityData"
-          @add="handleQualityAdd($event)"
-          @update="handleQualityUpdate($event)"
-          @delete-items="handleQualityDelete($event)"
+          @change="handleQualityChange($event)"
         />
       </div>
 
@@ -372,6 +370,7 @@ function mkProc() { return { consumption:{self:[], outsource:[]}, output:{self:[
 const machining    = reactive(mkProc())
 const coating      = reactive(mkProc())
 const purification = reactive(mkProc())
+
 const getProc = n => ({machining,coating,purification}[n])
 
 // 庫別代碼對照
@@ -452,8 +451,8 @@ function handleOutputUpdate(proc, { section, idx, row }) {
   arr[idx] = { ...row, id: arr[idx].id }
   showMsg('產出明細已修改', 'success')
 }
-// 品檢資訊
-const qualityData = reactive({}) // { lotNo: [{ id, item, standard, actual, judgment, remark }] }
+// 品檢資訊 { lotNo: { paramKey: value } }
+const qualityData = reactive({})
 
 // 批號總覽：收集各製程產出的所有批號（去重、過濾空值）
 const lotOverview = computed(() => {
@@ -490,22 +489,10 @@ const allLots = computed(() => {
   return lots
 })
 
-function handleQualityAdd({ lotNo, row }) {
-  if (!qualityData[lotNo]) qualityData[lotNo] = []
-  qualityData[lotNo].push({ ...row, id: Date.now() })
+function handleQualityChange({ lotNo, paramKey, value }) {
+  if (!qualityData[lotNo]) qualityData[lotNo] = {}
+  qualityData[lotNo][paramKey] = value
   addLog(`輸入【品檢資訊】批號 ${lotNo}`, 'input', `quality-${lotNo}`)
-  showMsg(`品檢資料已新增：${row.item}`, 'success')
-}
-function handleQualityUpdate({ lotNo, idx, row }) {
-  const arr = qualityData[lotNo]
-  if (arr) { arr[idx] = { ...row, id: arr[idx].id }; showMsg('品檢資料已修改', 'success') }
-}
-function handleQualityDelete({ lotNo, ids }) {
-  const idSet = new Set(ids)
-  if (!qualityData[lotNo]) return
-  qualityData[lotNo].splice(0, qualityData[lotNo].length, ...qualityData[lotNo].filter(r => !idSet.has(r.id)))
-  if (!qualityData[lotNo].length) removeLog(`quality-${lotNo}`)
-  showMsg(`已刪除 ${idSet.size} 筆品檢資料`, 'info')
 }
 
 function handleOutputDelete(proc, { section, ids }) {
