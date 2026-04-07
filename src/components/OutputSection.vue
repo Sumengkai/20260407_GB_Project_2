@@ -1,21 +1,14 @@
 <template>
   <div>
-    <!-- 區塊標題列 + 功能按鈕 -->
     <div :class="['section-bar', colorClass]">
       <span class="section-title">{{ label }}</span>
       <button class="btn btn-primary" @click="handleAdd">新增</button>
-      <button class="btn btn-warn"
-        :disabled="editingIdx < 0 && checkedIds.size !== 1"
-        @click="handleEdit">
-        {{ editingIdx >= 0 ? '儲存修改' : '修改' }}
-      </button>
-      <button class="btn btn-default" v-if="editingIdx >= 0" @click="cancelEdit">取消</button>
+      <button class="btn btn-warn"   :disabled="checkedIds.size === 0" @click="handleEdit">修改</button>
       <button class="btn btn-danger" :disabled="checkedIds.size === 0" @click="handleDelete">
         刪除<span v-if="checkedIds.size" class="badge">{{ checkedIds.size }}</span>
       </button>
     </div>
 
-    <!-- 明細表格 -->
     <div class="table-wrap">
       <table class="dtable">
         <thead>
@@ -27,59 +20,45 @@
           </tr>
         </thead>
         <tbody>
-          <!-- 已確認的資料列 -->
-          <tr v-for="(row, idx) in rows" :key="row.id"
-              :class="{ 'row-checked': checkedIds.has(row.id), 'row-editing': editingIdx === idx }">
+          <!-- 已存資料列（永遠顯示輸入框） -->
+          <tr v-for="row in rows" :key="row.id"
+              :class="{ 'row-checked': checkedIds.has(row.id) }">
             <td>
-              <input type="checkbox"
-                :checked="checkedIds.has(row.id)"
-                :disabled="editingIdx >= 0 && editingIdx !== idx"
-                @change="toggleCheck(row.id)" />
-            </td>
-            <!-- 一般顯示模式 -->
-            <template v-if="editingIdx !== idx">
-              <td>{{ productLabel(row.productKey) }}</td>
-              <td>{{ row.spec1 }}</td><td>{{ row.spec2 }}</td><td>{{ row.spec3 }}</td>
-              <td>{{ row.qty }}</td><td>{{ row.lotNo }}</td><td>{{ row.remark }}</td>
-            </template>
-            <!-- 行內編輯模式 -->
-            <template v-else>
-              <td>
-                <select v-model="editForm.productKey" class="cell-input cell-select req">
-                  <option value="">請選擇品名</option>
-                  <option v-for="p in PRODUCTS" :key="p.key" :value="p.key">{{ p.label }}</option>
-                </select>
-              </td>
-              <td><input v-model="editForm.spec1" class="cell-input" placeholder="規格1" /></td>
-              <td><input v-model="editForm.spec2" class="cell-input" placeholder="規格2" /></td>
-              <td><input v-model="editForm.spec3" class="cell-input" placeholder="規格3" /></td>
-              <td><input v-model="editForm.qty"   class="cell-input req" type="number" placeholder="數量*" /></td>
-              <td><input v-model="editForm.lotNo" class="cell-input" placeholder="批號" /></td>
-              <td><input v-model="editForm.remark" class="cell-input" placeholder="備註" /></td>
-            </template>
-          </tr>
-
-          <!-- 新增輸入列（永遠顯示在最底） -->
-          <tr class="new-row" :class="{ 'new-row-checked': newRow.checked }">
-            <td>
-              <input type="checkbox" v-model="newRow.checked" :disabled="editingIdx >= 0" />
+              <input type="checkbox" :checked="checkedIds.has(row.id)" @change="toggleCheck(row.id)" />
             </td>
             <td>
-              <select v-model="newRow.productKey" class="cell-input cell-select req" :disabled="editingIdx >= 0">
+              <select v-if="editForms[row.id]" v-model="editForms[row.id].productKey" class="cell-input cell-select req">
                 <option value="">請選擇品名</option>
                 <option v-for="p in PRODUCTS" :key="p.key" :value="p.key">{{ p.label }}</option>
               </select>
             </td>
-            <td><input v-model="newRow.spec1"  class="cell-input" placeholder="規格1" :disabled="editingIdx >= 0" /></td>
-            <td><input v-model="newRow.spec2"  class="cell-input" placeholder="規格2" :disabled="editingIdx >= 0" /></td>
-            <td><input v-model="newRow.spec3"  class="cell-input" placeholder="規格3" :disabled="editingIdx >= 0" /></td>
-            <td><input v-model="newRow.qty"    class="cell-input req" type="number" placeholder="數量*" :disabled="editingIdx >= 0" /></td>
-            <td><input v-model="newRow.lotNo"  class="cell-input" placeholder="批號" :disabled="editingIdx >= 0" /></td>
-            <td><input v-model="newRow.remark" class="cell-input" placeholder="備註" :disabled="editingIdx >= 0" /></td>
+            <td><input v-if="editForms[row.id]" v-model="editForms[row.id].spec1"  class="cell-input" placeholder="規格1" /></td>
+            <td><input v-if="editForms[row.id]" v-model="editForms[row.id].spec2"  class="cell-input" placeholder="規格2" /></td>
+            <td><input v-if="editForms[row.id]" v-model="editForms[row.id].spec3"  class="cell-input" placeholder="規格3" /></td>
+            <td><input v-if="editForms[row.id]" v-model="editForms[row.id].qty"    class="cell-input req" type="number" placeholder="數量*" /></td>
+            <td><input v-if="editForms[row.id]" v-model="editForms[row.id].lotNo"  class="cell-input req" placeholder="批號*" /></td>
+            <td><input v-if="editForms[row.id]" v-model="editForms[row.id].remark" class="cell-input" placeholder="備註" /></td>
+          </tr>
+
+          <!-- 新增輸入列 -->
+          <tr class="new-row" :class="{ 'new-row-checked': newRow.checked }">
+            <td><input type="checkbox" v-model="newRow.checked" /></td>
+            <td>
+              <select v-model="newRow.productKey" class="cell-input cell-select req">
+                <option value="">請選擇品名</option>
+                <option v-for="p in PRODUCTS" :key="p.key" :value="p.key">{{ p.label }}</option>
+              </select>
+            </td>
+            <td><input v-model="newRow.spec1"  class="cell-input" placeholder="規格1" /></td>
+            <td><input v-model="newRow.spec2"  class="cell-input" placeholder="規格2" /></td>
+            <td><input v-model="newRow.spec3"  class="cell-input" placeholder="規格3" /></td>
+            <td><input v-model="newRow.qty"    class="cell-input req" type="number" placeholder="數量*" /></td>
+            <td><input v-model="newRow.lotNo"  class="cell-input req" placeholder="批號*" /></td>
+            <td><input v-model="newRow.remark" class="cell-input" placeholder="備註" /></td>
           </tr>
 
           <tr v-if="!rows.length">
-            <td colspan="8" class="hint-row">請在最下方輸入列選擇品名，勾選後點擊「新增」</td>
+            <td colspan="8" class="hint-row">請在最下方輸入列填寫資料，勾選後點擊「新增」</td>
           </tr>
         </tbody>
       </table>
@@ -88,16 +67,15 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { reactive, watch } from 'vue'
 
 const props = defineProps({
-  label:      { type: String, default: '' },
-  colorClass: { type: String, default: '' },
-  rows:       { type: Array, default: () => [] },
+  label:      { type: String,  default: '' },
+  colorClass: { type: String,  default: '' },
+  rows:       { type: Array,   default: () => [] },
 })
 const emit = defineEmits(['add', 'update', 'delete-items'])
 
-// 品名下拉假資料（含品號）
 const PRODUCTS = [
   { key: 'ACS15U', label: 'ACS15U - 超級電容ACS15U' },
   { key: 'GC-001', label: 'GC-001 - 石墨化碳材料' },
@@ -108,62 +86,62 @@ const PRODUCTS = [
   { key: 'GR-400', label: 'GR-400 - 石墨電極GR-400' },
   { key: 'BC-500', label: 'BC-500 - 電池碳材BC-500' },
 ]
-function productLabel(key) {
-  return PRODUCTS.find(p => p.key === key)?.label ?? key
-}
 
-// 勾選狀態
+// 每列的本地編輯表單（key = row.id）
+const editForms = reactive({})
+
+watch(() => props.rows, (newRows) => {
+  // 為新增的列建立表單
+  newRows.forEach(row => {
+    if (!editForms[row.id]) editForms[row.id] = { ...row }
+  })
+  // 清除已刪除列的表單
+  const ids = new Set(newRows.map(r => r.id))
+  Object.keys(editForms).forEach(k => {
+    if (!ids.has(Number(k))) delete editForms[k]
+  })
+}, { immediate: true, deep: true })
+
+// 勾選
 const checkedIds = reactive(new Set())
 function toggleCheck(id) {
   if (checkedIds.has(id)) checkedIds.delete(id)
   else checkedIds.add(id)
 }
 
-// 空白表單
-function emptyForm() {
-  return { productKey:'', spec1:'', spec2:'', spec3:'', qty:null, lotNo:'', remark:'' }
-}
-
 // 新增輸入列
+function emptyForm() { return { productKey:'', spec1:'', spec2:'', spec3:'', qty:null, lotNo:'', remark:'' } }
 const newRow = reactive({ checked: false, ...emptyForm() })
 function resetNew() { Object.assign(newRow, { checked: false, ...emptyForm() }) }
 
-// 行內編輯
-const editingIdx = ref(-1)
-const editForm = reactive(emptyForm())
-
+// 新增
 function handleAdd() {
-  if (!newRow.checked)       { alert('請先勾選新增列的方框'); return }
-  if (!newRow.productKey)    { alert('請選擇品名'); return }
-  if (!newRow.qty)           { alert('數量為必填欄位'); return }
+  if (!newRow.checked)    { alert('請先勾選新增列的方框'); return }
+  if (!newRow.productKey) { alert('請選擇品名'); return }
+  if (!newRow.qty)        { alert('數量為必填欄位'); return }
+  if (!newRow.lotNo)      { alert('批號為必填欄位'); return }
   emit('add', { ...emptyForm(), productKey:newRow.productKey,
     spec1:newRow.spec1, spec2:newRow.spec2, spec3:newRow.spec3,
     qty:newRow.qty, lotNo:newRow.lotNo, remark:newRow.remark })
   resetNew()
 }
 
+// 修改（直接用各列的 editForm 覆蓋）
 function handleEdit() {
-  if (editingIdx.value >= 0) {
-    if (!editForm.productKey) { alert('請選擇品名'); return }
-    if (!editForm.qty)        { alert('數量為必填欄位'); return }
-    emit('update', { idx: editingIdx.value, row: { ...editForm } })
-    editingIdx.value = -1
-    checkedIds.clear()
-  } else {
-    if (checkedIds.size !== 1) return
-    const id  = [...checkedIds][0]
+  if (!checkedIds.size) return
+  let hasError = false
+  checkedIds.forEach(id => {
+    const form = editForms[id]
+    if (!form) return
+    if (!form.productKey || !form.qty || !form.lotNo) { hasError = true; return }
     const idx = props.rows.findIndex(r => r.id === id)
-    if (idx < 0) return
-    editingIdx.value = idx
-    Object.assign(editForm, { ...props.rows[idx] })
-  }
-}
-
-function cancelEdit() {
-  editingIdx.value = -1
+    if (idx >= 0) emit('update', { idx, row: { ...form } })
+  })
+  if (hasError) { alert('勾選列中有品名、數量或批號未填，請確認後再修改'); return }
   checkedIds.clear()
 }
 
+// 刪除
 function handleDelete() {
   if (!checkedIds.size) return
   if (!confirm(`確定要刪除已勾選的 ${checkedIds.size} 筆資料？`)) return
@@ -183,28 +161,23 @@ function handleDelete() {
 .section-title { font-weight: bold; font-size: 13px; min-width: 40px; margin-right: 4px; }
 .table-wrap { padding: 8px 12px; overflow-x: auto; }
 
-.dtable { width:100%; border-collapse:collapse; font-size:12px; min-width: 700px; }
+.dtable { width:100%; border-collapse:collapse; font-size:12px; min-width:700px; }
 .dtable th { background:#3a6abf; color:#fff; padding:5px 8px; border:1px solid #2a5aaf; white-space:nowrap; text-align:center; }
 .dtable td { padding:3px 6px; border:1px solid #d0dce8; text-align:center; }
 .dtable tr:nth-child(even) td { background:#f0f6ff; }
 .dtable tr:hover td           { background:#dceeff; }
-
 .row-checked td  { background:#d4e8ff !important; }
-.row-editing td  { background:#fff8e1 !important; }
 .new-row td          { background:#f0fff4; }
 .new-row-checked td  { background:#d0f0e0 !important; }
+.hint-row { color:#aaa; text-align:center; padding:12px; font-style:italic; }
 
 .cell-input {
-  width: 100%; padding: 2px 5px;
-  border: 1px solid #b0c4de; border-radius: 2px;
-  font-size: 12px; font-family: inherit; background: #fff; box-sizing: border-box;
+  width:100%; padding:2px 5px; border:1px solid #b0c4de; border-radius:2px;
+  font-size:12px; font-family:inherit; background:#fff; box-sizing:border-box;
 }
-.cell-input:focus    { border-color: #3a6abf; outline: none; }
-.cell-input.req      { border-color: #c0392b; }
-.cell-input:disabled { background: #eee; }
-.cell-select         { cursor: pointer; }
-
-.hint-row { color:#aaa; text-align:center; padding:12px; font-style:italic; }
+.cell-input:focus { border-color:#3a6abf; outline:none; }
+.cell-input.req   { border-color:#c0392b; }
+.cell-select      { cursor:pointer; }
 
 .btn { padding:3px 10px; font-size:12px; font-family:inherit; border:1px solid; border-radius:3px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; }
 .btn:hover    { filter:brightness(1.1); }
@@ -212,11 +185,5 @@ function handleDelete() {
 .btn-primary { background:#3a6abf; color:#fff; border-color:#2a5aaf; }
 .btn-warn    { background:#e67e22; color:#fff; border-color:#ca6f1e; }
 .btn-danger  { background:#c0392b; color:#fff; border-color:#a93226; }
-.btn-default { background:#e8e8e8; color:#333; border-color:#bbb; }
-
-.badge {
-  background: rgba(255,255,255,.9); color: #c0392b;
-  font-size: 11px; font-weight: bold;
-  padding: 0 5px; border-radius: 8px; min-width: 16px; text-align: center;
-}
+.badge { background:rgba(255,255,255,.9); color:#c0392b; font-size:11px; font-weight:bold; padding:0 5px; border-radius:8px; min-width:16px; text-align:center; }
 </style>

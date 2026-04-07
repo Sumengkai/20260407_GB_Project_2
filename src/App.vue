@@ -49,12 +49,9 @@
         <div class="panel-toolbar">
           <span class="toolbar-label">功能</span>
           <div class="toolbar-id" v-if="d5.id">單號：{{ d5.id }}</div>
-          <!-- 尚未建檔：只顯示新增 -->
           <button v-if="!d5.id" class="btn btn-primary" @click="d5Create">新增</button>
-          <!-- 已建檔：顯示修改與確認轉訂單 -->
           <template v-else>
-            <button class="btn btn-default" @click="d5Edit">修改</button>
-            <button class="btn btn-success" :disabled="d5.confirmed" @click="d5Confirm">確認轉訂單</button>
+            <button class="btn btn-success" @click="d5Confirm">確認轉訂單</button>
             <span v-if="d5.confirmed" class="status-badge confirmed">已確認轉訂單</span>
           </template>
         </div>
@@ -62,17 +59,17 @@
           <div class="form-row">
             <div class="form-cell lbl req-lbl">交期 *</div>
             <div class="form-cell inp">
-              <input type="date" v-model="d5.deliveryDate" :disabled="d5.confirmed" class="f-input" />
+              <input type="date" v-model="d5.deliveryDate" class="f-input" />
             </div>
             <div class="form-cell lbl req-lbl">圖號 *</div>
             <div class="form-cell inp">
-              <input type="text" v-model="d5.drawingNo" :disabled="d5.confirmed" class="f-input" placeholder="請輸入圖號" />
+              <input type="text" v-model="d5.drawingNo" class="f-input" placeholder="請輸入圖號" />
             </div>
           </div>
           <div class="form-row">
             <div class="form-cell lbl">附件</div>
             <div class="form-cell inp c3">
-              <input type="file" :disabled="d5.confirmed" class="f-input" @change="d5FileChange" />
+              <input type="file" class="f-input" @change="d5FileChange" />
               <span v-if="d5.attachmentName" class="file-name">{{ d5.attachmentName }}</span>
             </div>
           </div>
@@ -80,43 +77,50 @@
             <div class="form-cell lbl">庫存是否足夠</div>
             <div class="form-cell inp">
               <label class="chk-label">
-                <input type="checkbox" v-model="d5.stockSufficient" :disabled="d5.confirmed" />
+                <input type="checkbox" v-model="d5.stockSufficient" />
                 <span>確認庫存足夠</span>
               </label>
             </div>
             <div class="form-cell lbl">委託類型</div>
             <div class="form-cell inp">
-              <label class="chk-label"><input type="checkbox" v-model="d5.typeMachining" :disabled="d5.confirmed" /><span>機加工</span></label>
-              <label class="chk-label"><input type="checkbox" v-model="d5.typeCoating" :disabled="d5.confirmed" /><span>鍍膜</span></label>
-              <label class="chk-label"><input type="checkbox" v-model="d5.typePurification" :disabled="d5.confirmed" /><span>純化</span></label>
+              <label class="chk-label"><input type="checkbox" v-model="d5.typeMachining" /><span>機加工</span></label>
+              <label class="chk-label"><input type="checkbox" v-model="d5.typeCoating" /><span>鍍膜</span></label>
+              <label class="chk-label"><input type="checkbox" v-model="d5.typePurification" /><span>純化</span></label>
             </div>
           </div>
           <div class="form-row">
             <div class="form-cell lbl">爐次</div>
             <div class="form-cell inp">
-              <input type="text" v-model="d5.furnaceNo" :disabled="d5.confirmed" class="f-input" placeholder="請輸入爐次" />
+              <input type="text" v-model="d5.furnaceNo" class="f-input" placeholder="請輸入爐次" />
             </div>
             <div class="form-cell lbl">費用</div>
             <div class="form-cell inp">
-              <input type="number" v-model="d5.cost" :disabled="d5.confirmed" class="f-input" placeholder="0" />
+              <input type="number" v-model="d5.cost" class="f-input" placeholder="0" />
             </div>
           </div>
           <div class="form-row">
             <div class="form-cell lbl">客戶</div>
             <div class="form-cell inp c3">
-              <input type="text" v-model="d5.customer" :disabled="d5.confirmed" class="f-input" placeholder="請輸入客戶名稱" />
+              <input type="text" v-model="d5.customer" class="f-input" placeholder="請輸入客戶名稱" />
             </div>
           </div>
           <div class="form-row">
             <div class="form-cell lbl">備註</div>
             <div class="form-cell inp c3">
-              <textarea v-model="d5.remark" :disabled="d5.confirmed" class="f-textarea" rows="2" placeholder="請輸入備註"></textarea>
+              <textarea v-model="d5.remark" class="f-textarea" rows="2" placeholder="請輸入備註"></textarea>
             </div>
           </div>
           <div class="form-row">
             <div class="form-cell lbl sys-lbl">系統備註</div>
             <div class="form-cell inp c3">
-              <textarea v-model="d5.sysRemark" disabled class="f-textarea sys-ta" rows="2"></textarea>
+              <div class="sys-log">
+                <div v-if="!d5.sysLog.length" class="log-empty">— 尚無記錄 —</div>
+                <div v-for="(entry, i) in d5.sysLog" :key="i" :class="['log-entry', entry.level]">
+                  <span class="log-time">{{ entry.time }}</span>
+                  <span class="log-dot">›</span>
+                  <span class="log-msg">{{ entry.msg }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -244,6 +248,17 @@
         />
       </div>
 
+      <!-- ===== 8. 品檢資訊 ===== -->
+      <div v-show="activeTab === 8" class="tab-panel">
+        <QualityTab
+          :lots="allLots"
+          :quality-data="qualityData"
+          @add="handleQualityAdd($event)"
+          @update="handleQualityUpdate($event)"
+          @delete-items="handleQualityDelete($event)"
+        />
+      </div>
+
     </div>
 
     <!-- ===== 庫存挑選 Modal（多選） ===== -->
@@ -302,6 +317,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import ConsumptionTab from './components/ConsumptionTab.vue'
 import OutputTab from './components/OutputTab.vue'
+import QualityTab from './components/QualityTab.vue'
 
 // 日期
 const now = new Date()
@@ -311,7 +327,7 @@ const currentDate = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,
 // 頁籤
 // 全部頁籤定義（固定索引）
 // 頁籤
-const tabs = ['D5申請單','訂單','機加工(耗用)','機加工(產出)','鍍膜(耗用)','鍍膜(產出)','純化(耗用)','純化(產出)']
+const tabs = ['D5申請單','訂單','機加工(耗用)','機加工(產出)','鍍膜(耗用)','鍍膜(產出)','純化(耗用)','純化(產出)','品檢資訊']
 const activeTab = ref(0)
 
 // 訊息
@@ -336,8 +352,19 @@ const d5 = reactive({
   id: null, confirmed: false,
   deliveryDate:'', drawingNo:'', attachmentName:'',
   stockSufficient:false, typeMachining:false, typeCoating:false, typePurification:false,
-  furnaceNo:'', cost:null, customer:'', remark:'', sysRemark:''
+  furnaceNo:'', cost:null, customer:'', remark:'', sysLog:[]
 })
+
+// 製程 / 區塊 中文對照
+const PROC_NAME = { machining:'機加工', coating:'鍍膜', purification:'純化' }
+const SEC_NAME  = { self:'自產', outsource:'委外' }
+
+// 寫入系統 LOG
+function addLog(msg, level = 'info') {
+  const now = new Date()
+  const time = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`
+  d5.sysLog.push({ time, msg, level })
+}
 
 // 依委託類型動態顯示頁籤（需在 d5 定義後）
 const visibleTabIndices = computed(() => {
@@ -345,6 +372,7 @@ const visibleTabIndices = computed(() => {
   if (d5.typeMachining)    idx.push(2, 3)
   if (d5.typeCoating)      idx.push(4, 5)
   if (d5.typePurification) idx.push(6, 7)
+  idx.push(8) // 品檢資訊 永遠顯示
   return idx
 })
 watch(visibleTabIndices, (newList) => {
@@ -355,17 +383,13 @@ function d5Create() {
   // 模擬後端自動建立單號
   const ym = `${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}`
   d5.id = `D5-${ym}-${String(Math.floor(Math.random()*9000)+1000)}`
-  d5.sysRemark = `[${new Date().toLocaleString('zh-TW')}] 申請單建檔完成，單號：${d5.id}`
+  addLog(`建立 D5 申請單，單號：${d5.id}`, 'create')
   showMsg(`D5 申請單建檔完成，單號：${d5.id}`, 'success')
-}
-function d5Edit() {
-  d5.confirmed = false
-  showMsg('修改模式：修改完成後請再次點擊「確認轉訂單」')
 }
 function d5Confirm() {
   if (!d5.deliveryDate || !d5.drawingNo) { showMsg('交期與圖號為必填欄位', 'error'); return }
   d5.confirmed = true
-  d5.sysRemark = `[${new Date().toLocaleString('zh-TW')}] 已確認轉訂單，單號：${d5.id}`
+  addLog('申請單轉訂單', 'confirm')
   showMsg(`D5 申請單已確認轉訂單，單號：${d5.id}`, 'success')
   activeTab.value = 1
 }
@@ -376,6 +400,7 @@ const order = reactive({ qty:null, remark:'' })
 function orderSave() {
   if (!d5.id) { showMsg('請先完成 D5 申請單並確認轉訂單', 'error'); return }
   if (!order.qty) { showMsg('數量為必填欄位', 'error'); return }
+  addLog(`儲存訂單，數量：${order.qty}`, 'info')
   showMsg('訂單資料已儲存', 'success')
 }
 
@@ -423,32 +448,79 @@ function confirmPicker() {
     arr.push({ id: Date.now() + i, ...inv })
     names.push(inv.itemName)
   })
+  const count = picker.selIds.size
   picker.show = false
-  showMsg(`已確認耗用 ${picker.selIds.size} 筆：${names.join('、')}`, 'success')
+  addLog(`輸入【${PROC_NAME[picker.proc]}(耗用)】${SEC_NAME[picker.section]}：${names.join('、')}（${count} 筆）`, 'input')
+  showMsg(`已確認耗用 ${count} 筆：${names.join('、')}`, 'success')
   picker.selIds.clear()
 }
 function cancelConsumption(procName, { section, ids }) {
   const idSet = new Set(ids)
   const arr = getProc(procName).consumption[section]
   arr.splice(0, arr.length, ...arr.filter(r => !idSet.has(r.id)))
+  addLog(`取消【${PROC_NAME[procName]}(耗用)】${SEC_NAME[section]}：${idSet.size} 筆`, 'cancel')
   showMsg(`已取消 ${idSet.size} 筆耗用`, 'info')
 }
 
 // 產出明細處理（行內新增/修改/刪除）
 function handleOutputAdd(proc, { section, row }) {
   getProc(proc).output[section].push({ ...row, id: Date.now() })
+  const label = row.productKey || '（未知品名）'
+  addLog(`輸入【${PROC_NAME[proc]}(產出)】${SEC_NAME[section]}：${label}，數量 ${row.qty}`, 'input')
   showMsg('產出明細已新增', 'success')
 }
 function handleOutputUpdate(proc, { section, idx, row }) {
   const arr = getProc(proc).output[section]
   arr[idx] = { ...row, id: arr[idx].id }
+  addLog(`修改【${PROC_NAME[proc]}(產出)】${SEC_NAME[section]}：${row.productKey}，數量 ${row.qty}`, 'edit')
   showMsg('產出明細已修改', 'success')
 }
+// 品檢資訊
+const qualityData = reactive({}) // { lotNo: [{ id, item, standard, actual, judgment, remark }] }
+
+const allLots = computed(() => {
+  const lots = [], seen = new Set()
+  const collect = (proc, procName) => {
+    ['self','outsource'].forEach(sec => {
+      getProc(proc).output[sec].forEach(row => {
+        if (row.lotNo && !seen.has(row.lotNo)) {
+          seen.add(row.lotNo)
+          lots.push({ lotNo: row.lotNo, productKey: row.productKey, procName, section: SEC_NAME[sec] })
+        }
+      })
+    })
+  }
+  collect('machining', '機加工')
+  collect('coating',   '鍍膜')
+  collect('purification', '純化')
+  return lots
+})
+
+function handleQualityAdd({ lotNo, row }) {
+  if (!qualityData[lotNo]) qualityData[lotNo] = []
+  qualityData[lotNo].push({ ...row, id: Date.now() })
+  addLog(`輸入【品檢資訊】批號 ${lotNo}：${row.item}`, 'input')
+  showMsg(`品檢資料已新增：${row.item}`, 'success')
+}
+function handleQualityUpdate({ lotNo, idx, row }) {
+  const arr = qualityData[lotNo]
+  if (arr) { arr[idx] = { ...row, id: arr[idx].id }; addLog(`修改【品檢資訊】批號 ${lotNo}：${row.item}`, 'edit'); showMsg('品檢資料已修改', 'success') }
+}
+function handleQualityDelete({ lotNo, ids }) {
+  const idSet = new Set(ids)
+  if (!qualityData[lotNo]) return
+  const removed = idSet.size
+  qualityData[lotNo].splice(0, qualityData[lotNo].length, ...qualityData[lotNo].filter(r => !idSet.has(r.id)))
+  addLog(`刪除【品檢資訊】批號 ${lotNo}：${removed} 筆`, 'cancel')
+  showMsg(`已刪除 ${removed} 筆品檢資料`, 'info')
+}
+
 function handleOutputDelete(proc, { section, ids }) {
   const idSet = new Set(ids)
   const arr = getProc(proc).output[section]
   const removed = idSet.size
   arr.splice(0, arr.length, ...arr.filter(r => !idSet.has(r.id)))
+  addLog(`刪除【${PROC_NAME[proc]}(產出)】${SEC_NAME[section]}：${removed} 筆`, 'cancel')
   showMsg(`已刪除 ${removed} 筆產出明細`, 'info')
 }
 </script>
@@ -567,6 +639,28 @@ function handleOutputDelete(proc, { section, ids }) {
 .c3  { grid-column:span 3; }
 .c4  { grid-column:span 4; }
 .sys-lbl { background:#d8d8d8; color:#555; }
+
+/* 系統 LOG */
+.sys-log {
+  width: 100%; max-height: 110px; overflow-y: auto;
+  background: #f0f0f0; border: 1px solid #d0d8e0; border-radius: 3px;
+  padding: 5px 8px; font-size: 12px;
+  display: flex; flex-direction: column; gap: 1px;
+}
+.log-empty { color: #aaa; font-style: italic; text-align: center; padding: 4px; }
+.log-entry { display: flex; align-items: baseline; gap: 6px; line-height: 1.7; border-bottom: 1px solid #e4e8ee; }
+.log-entry:last-child { border-bottom: none; }
+.log-time  { color: #7a8fa8; white-space: nowrap; font-size: 11px; flex-shrink: 0; }
+.log-dot   { color: #bbb; }
+.log-msg   { color: #333; word-break: break-all; }
+
+/* log 等級色彩 */
+.log-entry.create  .log-msg { color: #1a7a40; }
+.log-entry.confirm .log-msg { color: #7a5500; font-weight: bold; }
+.log-entry.input   .log-msg { color: #1a4a8a; }
+.log-entry.edit    .log-msg { color: #6a3a9a; }
+.log-entry.cancel  .log-msg { color: #aa2222; }
+.log-entry.info    .log-msg { color: #333; }
 .sec-header { background:#4a7abf; color:#fff; font-weight:bold; font-size:12px; padding:4px 12px; }
 .req-lbl { color:#c0392b; }
 
