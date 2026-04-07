@@ -369,10 +369,12 @@ function addLog(msg, level = 'info') {
 // 依委託類型動態顯示頁籤（需在 d5 定義後）
 const visibleTabIndices = computed(() => {
   const idx = [0, 1]
-  if (d5.typeMachining)    idx.push(2, 3)
-  if (d5.typeCoating)      idx.push(4, 5)
-  if (d5.typePurification) idx.push(6, 7)
-  idx.push(8) // 品檢資訊 永遠顯示
+  if (d5.id) {
+    if (d5.typeMachining)    idx.push(2, 3)
+    if (d5.typeCoating)      idx.push(4, 5)
+    if (d5.typePurification) idx.push(6, 7)
+    idx.push(8) // 品檢資訊
+  }
   return idx
 })
 watch(visibleTabIndices, (newList) => {
