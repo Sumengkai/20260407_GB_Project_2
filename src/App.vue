@@ -361,7 +361,8 @@ function d5Create() {
 }
 function d5Update() {
   if (!d5.deliveryDate) { showMsg('交期為必填欄位', 'error'); return }
-  addLog(`修改 D5 申請單，單號：${d5.id}`, 'info')
+  removeLog('d5-update')
+  addLog(`修改 D5 申請單，單號：${d5.id}`, 'info', 'd5-update')
   showMsg(`D5 申請單已修改，單號：${d5.id}`, 'success')
 }
 function d5FileChange(e) { d5.attachmentName = e.target.files[0]?.name || '' }
