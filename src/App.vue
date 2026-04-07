@@ -15,14 +15,14 @@
       <span :class="['msg-text', message.type]">{{ message.text }}</span>
     </div>
 
-    <!-- 頁籤導覽 -->
+    <!-- 頁籤導覽（依委託類型動態顯示） -->
     <div class="tab-nav">
       <button
-        v-for="(tab, idx) in tabs"
+        v-for="idx in visibleTabIndices"
         :key="idx"
         :class="['tab-btn', { active: activeTab === idx }]"
         @click="activeTab = idx"
-      >{{ tab }}</button>
+      >{{ tabs[idx] }}</button>
     </div>
 
     <!-- 頁籤內容 -->
@@ -283,7 +283,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import ConsumptionTab from './components/ConsumptionTab.vue'
 import OutputTab from './components/OutputTab.vue'
 
@@ -293,6 +293,7 @@ const days = ['日','一','二','三','四','五','六']
 const currentDate = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} (${days[now.getDay()]})`
 
 // 頁籤
+// 全部頁籤定義（固定索引）
 const tabs = ['D5申請單','訂單','機加工(耗用)','機加工(產出)','鍍膜(耗用)','鍍膜(產出)','純化(耗用)','純化(產出)']
 const activeTab = ref(0)
 
@@ -306,6 +307,18 @@ const d5 = reactive({
   deliveryDate:'', drawingNo:'', attachmentName:'',
   stockSufficient:false, typeMachining:false, typeCoating:false, typePurification:false,
   furnaceNo:'', cost:null, customer:'', remark:'', sysRemark:''
+})
+
+// 依委託類型動態顯示頁籤（需在 d5 定義後）
+const visibleTabIndices = computed(() => {
+  const idx = [0, 1]
+  if (d5.typeMachining)    idx.push(2, 3)
+  if (d5.typeCoating)      idx.push(4, 5)
+  if (d5.typePurification) idx.push(6, 7)
+  return idx
+})
+watch(visibleTabIndices, (newList) => {
+  if (!newList.includes(activeTab.value)) activeTab.value = 0
 })
 function d5Create() {
   if (!d5.deliveryDate || !d5.drawingNo) { showMsg('交期與圖號為必填欄位', 'error'); return }

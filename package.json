@@ -1,5 +1,5 @@
 {
-  "name": "20260407_GB_Project_2",
+  "name": "tmp-vue",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,7 +11,7 @@
   "dependencies": {
     "vue": "^3.5.32"
   },
- "devDependencies": {
+"devDependencies": {
   "@vitejs/plugin-vue": "^5.0.0",
   "vite": "^6.0.0"
 }
