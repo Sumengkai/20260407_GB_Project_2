@@ -50,20 +50,13 @@
           <span class="toolbar-label">功能</span>
           <div class="toolbar-id" v-if="d5.id">單號：{{ d5.id }}</div>
           <button v-if="!d5.id" class="btn btn-primary" @click="d5Create">新增</button>
-          <template v-else>
-            <button class="btn btn-success" @click="d5Confirm">確認轉訂單</button>
-            <span v-if="d5.confirmed" class="status-badge confirmed">已確認轉訂單</span>
-          </template>
+          <button v-else class="btn btn-warn" @click="d5Update">修改</button>
         </div>
         <div class="form-grid">
           <div class="form-row">
             <div class="form-cell lbl req-lbl">交期 *</div>
             <div class="form-cell inp">
               <input type="date" v-model="d5.deliveryDate" class="f-input" />
-            </div>
-            <div class="form-cell lbl req-lbl">圖號 *</div>
-            <div class="form-cell inp">
-              <input type="text" v-model="d5.drawingNo" class="f-input" placeholder="請輸入圖號" />
             </div>
           </div>
           <div class="form-row">
@@ -74,15 +67,8 @@
             </div>
           </div>
           <div class="form-row">
-            <div class="form-cell lbl">庫存是否足夠</div>
-            <div class="form-cell inp">
-              <label class="chk-label">
-                <input type="checkbox" v-model="d5.stockSufficient" />
-                <span>確認庫存足夠</span>
-              </label>
-            </div>
             <div class="form-cell lbl">委託類型</div>
-            <div class="form-cell inp">
+            <div class="form-cell inp c3">
               <label class="chk-label"><input type="checkbox" v-model="d5.typeMachining" /><span>機加工</span></label>
               <label class="chk-label"><input type="checkbox" v-model="d5.typeCoating" /><span>鍍膜</span></label>
               <label class="chk-label"><input type="checkbox" v-model="d5.typePurification" /><span>純化</span></label>
@@ -141,63 +127,8 @@
         </div>
       </div>
 
-      <!-- ===== 1. 訂單 ===== -->
+      <!-- ===== 1. 機加工(耗用) ===== -->
       <div v-show="activeTab === 1" class="tab-panel">
-        <div class="panel-toolbar">
-          <span class="toolbar-label">功能</span>
-          <button class="btn btn-primary" @click="orderSave">儲存</button>
-        </div>
-        <div class="form-grid">
-          <div class="form-row">
-            <div class="form-cell sec-header c4">從 D5 申請單帶入資訊</div>
-          </div>
-          <div class="form-row">
-            <div class="form-cell lbl">交期</div>
-            <div class="form-cell inp"><input type="date" v-model="d5.deliveryDate" disabled class="f-input" /></div>
-            <div class="form-cell lbl">圖號</div>
-            <div class="form-cell inp"><input type="text" v-model="d5.drawingNo" disabled class="f-input" /></div>
-          </div>
-          <div class="form-row">
-            <div class="form-cell lbl">爐次</div>
-            <div class="form-cell inp"><input type="text" v-model="d5.furnaceNo" disabled class="f-input" /></div>
-            <div class="form-cell lbl">費用</div>
-            <div class="form-cell inp"><input type="number" v-model="d5.cost" disabled class="f-input" /></div>
-          </div>
-          <div class="form-row">
-            <div class="form-cell lbl">客戶</div>
-            <div class="form-cell inp c3">
-              <input type="text" :value="customerLabel" disabled class="f-input" />
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-cell lbl">委託類型</div>
-            <div class="form-cell inp c3">
-              <span class="tag" v-if="d5.typeMachining">機加工</span>
-              <span class="tag" v-if="d5.typeCoating">鍍膜</span>
-              <span class="tag" v-if="d5.typePurification">純化</span>
-              <span v-if="!d5.typeMachining && !d5.typeCoating && !d5.typePurification" style="color:#aaa">（未選取）</span>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-cell sec-header c4">訂單專屬資訊</div>
-          </div>
-          <div class="form-row">
-            <div class="form-cell lbl req-lbl">數量 *</div>
-            <div class="form-cell inp"><input type="number" v-model="order.qty" class="f-input req-inp" placeholder="請輸入數量" /></div>
-            <div class="form-cell lbl"></div>
-            <div class="form-cell inp"></div>
-          </div>
-          <div class="form-row">
-            <div class="form-cell lbl">訂單備註</div>
-            <div class="form-cell inp c3">
-              <textarea v-model="order.remark" class="f-textarea" rows="3" placeholder="請輸入訂單備註"></textarea>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ===== 2. 機加工(耗用) ===== -->
-      <div v-show="activeTab === 2" class="tab-panel">
         <ConsumptionTab
           :show-self="true" :show-outsource="true"
           :self-rows="machining.consumption.self"
@@ -207,8 +138,8 @@
         />
       </div>
 
-      <!-- ===== 3. 機加工(產出) ===== -->
-      <div v-show="activeTab === 3" class="tab-panel">
+      <!-- ===== 2. 機加工(產出) ===== -->
+      <div v-show="activeTab === 2" class="tab-panel">
         <OutputTab
           :show-self="true" :show-outsource="true"
           :self-rows="machining.output.self"
@@ -219,8 +150,8 @@
         />
       </div>
 
-      <!-- ===== 4. 鍍膜(耗用) ===== -->
-      <div v-show="activeTab === 4" class="tab-panel">
+      <!-- ===== 3. 鍍膜(耗用) ===== -->
+      <div v-show="activeTab === 3" class="tab-panel">
         <ConsumptionTab
           :show-self="false" :show-outsource="true"
           :self-rows="coating.consumption.self"
@@ -230,8 +161,8 @@
         />
       </div>
 
-      <!-- ===== 5. 鍍膜(產出) ===== -->
-      <div v-show="activeTab === 5" class="tab-panel">
+      <!-- ===== 4. 鍍膜(產出) ===== -->
+      <div v-show="activeTab === 4" class="tab-panel">
         <OutputTab
           :show-self="false" :show-outsource="true"
           :self-rows="coating.output.self"
@@ -242,8 +173,8 @@
         />
       </div>
 
-      <!-- ===== 6. 純化(耗用) ===== -->
-      <div v-show="activeTab === 6" class="tab-panel">
+      <!-- ===== 5. 純化(耗用) ===== -->
+      <div v-show="activeTab === 5" class="tab-panel">
         <ConsumptionTab
           :show-self="true" :show-outsource="false"
           :self-rows="purification.consumption.self"
@@ -253,8 +184,8 @@
         />
       </div>
 
-      <!-- ===== 7. 純化(產出) ===== -->
-      <div v-show="activeTab === 7" class="tab-panel">
+      <!-- ===== 6. 純化(產出) ===== -->
+      <div v-show="activeTab === 6" class="tab-panel">
         <OutputTab
           :show-self="true" :show-outsource="false"
           :self-rows="purification.output.self"
@@ -265,8 +196,8 @@
         />
       </div>
 
-      <!-- ===== 8. 品檢資訊 ===== -->
-      <div v-show="activeTab === 8" class="tab-panel">
+      <!-- ===== 7. 品檢資訊 ===== -->
+      <div v-show="activeTab === 7" class="tab-panel">
         <QualityTab
           :lots="allLots"
           :quality-data="qualityData"
@@ -347,7 +278,7 @@ const currentDate = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,
 // 頁籤
 // 全部頁籤定義（固定索引）
 // 頁籤
-const tabs = ['D5申請單','訂單','機加工(耗用)','機加工(產出)','鍍膜(耗用)','鍍膜(產出)','純化(耗用)','純化(產出)','品檢資訊']
+const tabs = ['D5申請單','機加工(耗用)','機加工(產出)','鍍膜(耗用)','鍍膜(產出)','純化(耗用)','純化(產出)','品檢資訊']
 const activeTab = ref(0)
 
 // 訊息
@@ -369,9 +300,9 @@ function doQuery() {
 
 // D5 資料（欄位直接開放輸入，按新增完成建檔）
 const d5 = reactive({
-  id: null, confirmed: false,
-  deliveryDate:'', drawingNo:'', attachmentName:'',
-  stockSufficient:false, typeMachining:false, typeCoating:false, typePurification:false,
+  id: null,
+  deliveryDate:'', attachmentName:'',
+  typeMachining:false, typeCoating:false, typePurification:false,
   furnaceNo:'', cost:null, customer:'', remark:'', sysLog:[]
 })
 
@@ -385,10 +316,6 @@ const CUSTOMERS = [
   { name:'合晶',  code:'WW' },
   { name:'臺譜',  code:'TP' },
 ]
-const customerLabel = computed(() => {
-  const c = CUSTOMERS.find(c => c.code === d5.customer)
-  return c ? `${c.name}（${c.code}）` : ''
-})
 
 // 製程 / 區塊 中文對照
 const PROC_NAME = { machining:'機加工', coating:'鍍膜', purification:'純化' }
@@ -412,12 +339,12 @@ function procCount(proc, type) {
 
 // 依委託類型動態顯示頁籤（需在 d5 定義後）
 const visibleTabIndices = computed(() => {
-  const idx = [0, 1]
+  const idx = [0]
   if (d5.id) {
-    if (d5.typeMachining)    idx.push(2, 3)
-    if (d5.typeCoating)      idx.push(4, 5)
-    if (d5.typePurification) idx.push(6, 7)
-    idx.push(8) // 品檢資訊
+    if (d5.typeMachining)    idx.push(1, 2)
+    if (d5.typeCoating)      idx.push(3, 4)
+    if (d5.typePurification) idx.push(5, 6)
+    idx.push(7) // 品檢資訊
   }
   return idx
 })
@@ -425,29 +352,19 @@ watch(visibleTabIndices, (newList) => {
   if (!newList.includes(activeTab.value)) activeTab.value = 0
 })
 function d5Create() {
-  if (!d5.deliveryDate || !d5.drawingNo) { showMsg('交期與圖號為必填欄位', 'error'); return }
+  if (!d5.deliveryDate) { showMsg('交期為必填欄位', 'error'); return }
   // 模擬後端自動建立單號
   const ym = `${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}`
   d5.id = `D5-${ym}-${String(Math.floor(Math.random()*9000)+1000)}`
   addLog(`建立 D5 申請單，單號：${d5.id}`, 'create')
   showMsg(`D5 申請單建檔完成，單號：${d5.id}`, 'success')
 }
-function d5Confirm() {
-  if (!d5.deliveryDate || !d5.drawingNo) { showMsg('交期與圖號為必填欄位', 'error'); return }
-  d5.confirmed = true
-  addLog('申請單轉訂單', 'confirm')
-  showMsg(`D5 申請單已確認轉訂單，單號：${d5.id}`, 'success')
-  activeTab.value = 1
+function d5Update() {
+  if (!d5.deliveryDate) { showMsg('交期為必填欄位', 'error'); return }
+  addLog(`修改 D5 申請單，單號：${d5.id}`, 'info')
+  showMsg(`D5 申請單已修改，單號：${d5.id}`, 'success')
 }
 function d5FileChange(e) { d5.attachmentName = e.target.files[0]?.name || '' }
-
-// 訂單
-const order = reactive({ qty:null, remark:'' })
-function orderSave() {
-  if (!d5.id) { showMsg('請先完成 D5 申請單並確認轉訂單', 'error'); return }
-  if (!order.qty) { showMsg('數量為必填欄位', 'error'); return }
-  showMsg('訂單資料已儲存', 'success')
-}
 
 // 各製程資料
 function mkProc() { return { consumption:{self:[], outsource:[]}, output:{self:[], outsource:[]} } }
