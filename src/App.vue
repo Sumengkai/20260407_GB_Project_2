@@ -388,9 +388,10 @@ const allInv = [
   { itemNo:'GR-400', itemName:'石墨電極GR-400',   warehouse:'BBOUTTMP', lotNo:'GB-007', qty:60,  unit:'pcs' },
 ]
 
-// 自產：只允許 BB；委外：不限庫別
+// 自產：只允許 BB；委外：排除 BBPN
 function getBaseInv() {
-  return picker.section === 'self' ? allInv.filter(i => i.warehouse === 'BB') : allInv
+  if (picker.section === 'self') return allInv.filter(i => i.warehouse === 'BB')
+  return allInv.filter(i => i.warehouse !== 'BBPN')
 }
 
 const filteredInv = ref([...allInv])
