@@ -101,7 +101,10 @@
           <div class="form-row">
             <div class="form-cell lbl">客戶</div>
             <div class="form-cell inp c3">
-              <input type="text" v-model="d5.customer" class="f-input" placeholder="請輸入客戶名稱" />
+              <select v-model="d5.customer" class="f-input">
+                <option value="">— 請選擇客戶 —</option>
+                <option v-for="c in CUSTOMERS" :key="c.code" :value="c.code">{{ c.name }}（{{ c.code }}）</option>
+              </select>
             </div>
           </div>
           <div class="form-row">
@@ -150,7 +153,9 @@
           </div>
           <div class="form-row">
             <div class="form-cell lbl">客戶</div>
-            <div class="form-cell inp c3"><input type="text" v-model="d5.customer" disabled class="f-input" /></div>
+            <div class="form-cell inp c3">
+              <input type="text" :value="customerLabel" disabled class="f-input" />
+            </div>
           </div>
           <div class="form-row">
             <div class="form-cell lbl">委託類型</div>
@@ -353,6 +358,21 @@ const d5 = reactive({
   deliveryDate:'', drawingNo:'', attachmentName:'',
   stockSufficient:false, typeMachining:false, typeCoating:false, typePurification:false,
   furnaceNo:'', cost:null, customer:'', remark:'', sysLog:[]
+})
+
+// 客戶下拉資料
+const CUSTOMERS = [
+  { name:'正達', code:'GT' },
+  { name:'永泉', code:'YQ' },
+  { name:'盛新', code:'TS' },
+  { name:'漢民', code:'HM' },
+  { name:'環球晶', code:'GW' },
+  { name:'合晶',  code:'WW' },
+  { name:'臺譜',  code:'TP' },
+]
+const customerLabel = computed(() => {
+  const c = CUSTOMERS.find(c => c.code === d5.customer)
+  return c ? `${c.name}（${c.code}）` : ''
 })
 
 // 製程 / 區塊 中文對照
