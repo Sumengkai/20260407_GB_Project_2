@@ -4,7 +4,7 @@
     <template v-if="showSelf">
       <div class="section-bar">
         <span class="section-title">自產</span>
-        <button class="btn btn-primary" @click="$emit('open-picker', { section: 'self' })">打開視窗挑選庫存</button>
+        <button class="btn btn-light" @click="$emit('open-picker', { section: 'self' })">打開視窗挑選庫存</button>
         <button class="btn btn-danger"
           :disabled="!selfChecked.size"
           @click="cancelChecked('self')">
@@ -48,7 +48,7 @@
     <template v-if="showOutsource">
       <div class="section-bar outsource">
         <span class="section-title">委外</span>
-        <button class="btn btn-primary" @click="$emit('open-picker', { section: 'outsource' })">打開視窗挑選庫存</button>
+        <button class="btn btn-light" @click="$emit('open-picker', { section: 'outsource' })">打開視窗挑選庫存</button>
         <button class="btn btn-danger"
           :disabled="!outsourceChecked.size"
           @click="cancelChecked('outsource')">
@@ -151,7 +151,8 @@ function cancelChecked(section) {
 .btn { padding:3px 10px; font-size:12px; font-family:inherit; border:1px solid; border-radius:3px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; }
 .btn:hover    { filter:brightness(1.1); }
 .btn:disabled { opacity:.4; cursor:not-allowed; filter:none; }
-.btn-primary { background:#3a6abf; color:#fff; border-color:#2a5aaf; }
+.btn-light   { background:#fff; color:#2a5aaf; border-color:rgba(255,255,255,.7); }
+.btn-light:hover { background:#e8f0ff; }
 .btn-danger  { background:#c0392b; color:#fff; border-color:#a93226; }
 
 .badge {

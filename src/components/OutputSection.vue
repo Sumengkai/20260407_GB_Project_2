@@ -2,7 +2,7 @@
   <div>
     <div :class="['section-bar', colorClass]">
       <span class="section-title">{{ label }}</span>
-      <button class="btn btn-primary" @click="handleAdd">新增</button>
+      <button class="btn btn-light" @click="handleAdd">新增</button>
       <button class="btn btn-warn"   :disabled="checkedIds.size === 0" @click="handleEdit">修改</button>
       <button class="btn btn-danger" :disabled="checkedIds.size === 0" @click="handleDelete">
         刪除<span v-if="checkedIds.size" class="badge">{{ checkedIds.size }}</span>
@@ -182,7 +182,8 @@ function handleDelete() {
 .btn { padding:3px 10px; font-size:12px; font-family:inherit; border:1px solid; border-radius:3px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; }
 .btn:hover    { filter:brightness(1.1); }
 .btn:disabled { opacity:.4; cursor:not-allowed; filter:none; }
-.btn-primary { background:#3a6abf; color:#fff; border-color:#2a5aaf; }
+.btn-light   { background:#fff; color:#2a5aaf; border-color:rgba(255,255,255,.7); }
+.btn-light:hover { background:#e8f0ff; }
 .btn-warn    { background:#e67e22; color:#fff; border-color:#ca6f1e; }
 .btn-danger  { background:#c0392b; color:#fff; border-color:#a93226; }
 .badge { background:rgba(255,255,255,.9); color:#c0392b; font-size:11px; font-weight:bold; padding:0 5px; border-radius:8px; min-width:16px; text-align:center; }
