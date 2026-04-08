@@ -150,8 +150,27 @@
         />
       </div>
 
-      <!-- ===== 3. 鍍膜(耗用) ===== -->
+      <!-- ===== 3. 機加工(耗用)_version2 ===== -->
       <div v-show="activeTab === 3" class="tab-panel">
+        <ConsumptionTabV2
+          :rows="machining2.consumption"
+          @open-picker="openPickerV2($event)"
+          @cancel-rows="handleM2ConsumptionCancel($event)"
+        />
+      </div>
+
+      <!-- ===== 4. 機加工(產出)_version2 ===== -->
+      <div v-show="activeTab === 4" class="tab-panel">
+        <OutputTabV2
+          :rows="machining2.output"
+          @add="handleM2OutputAdd($event)"
+          @update="handleM2OutputUpdate($event)"
+          @delete-items="handleM2OutputDelete($event)"
+        />
+      </div>
+
+      <!-- ===== 5. 鍍膜(耗用) ===== -->
+      <div v-show="activeTab === 5" class="tab-panel">
         <ConsumptionTab
           :show-self="false" :show-outsource="true"
           :self-rows="coating.consumption.self"
@@ -161,8 +180,8 @@
         />
       </div>
 
-      <!-- ===== 4. 鍍膜(產出) ===== -->
-      <div v-show="activeTab === 4" class="tab-panel">
+      <!-- ===== 6. 鍍膜(產出) ===== -->
+      <div v-show="activeTab === 6" class="tab-panel">
         <OutputTab
           :show-self="false" :show-outsource="true"
           :self-rows="coating.output.self"
@@ -173,8 +192,8 @@
         />
       </div>
 
-      <!-- ===== 5. 純化(耗用) ===== -->
-      <div v-show="activeTab === 5" class="tab-panel">
+      <!-- ===== 7. 純化(耗用) ===== -->
+      <div v-show="activeTab === 7" class="tab-panel">
         <ConsumptionTab
           :show-self="true" :show-outsource="false"
           :self-rows="purification.consumption.self"
@@ -184,8 +203,8 @@
         />
       </div>
 
-      <!-- ===== 6. 純化(產出) ===== -->
-      <div v-show="activeTab === 6" class="tab-panel">
+      <!-- ===== 8. 純化(產出) ===== -->
+      <div v-show="activeTab === 8" class="tab-panel">
         <OutputTab
           :show-self="true" :show-outsource="false"
           :self-rows="purification.output.self"
@@ -196,8 +215,8 @@
         />
       </div>
 
-      <!-- ===== 7. 品檢資訊 ===== -->
-      <div v-show="activeTab === 7" class="tab-panel">
+      <!-- ===== 9. 品檢資訊 ===== -->
+      <div v-show="activeTab === 9" class="tab-panel">
         <QualityTab
           :all-lots="allLots"
           :quality-data="qualityData"
@@ -264,9 +283,11 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
-import ConsumptionTab from './components/ConsumptionTab.vue'
-import OutputTab from './components/OutputTab.vue'
-import QualityTab from './components/QualityTab.vue'
+import ConsumptionTab   from './components/ConsumptionTab.vue'
+import ConsumptionTabV2 from './components/ConsumptionTabV2.vue'
+import OutputTab        from './components/OutputTab.vue'
+import OutputTabV2      from './components/OutputTabV2.vue'
+import QualityTab       from './components/QualityTab.vue'
 
 // 日期
 const now = new Date()
@@ -276,7 +297,7 @@ const currentDate = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,
 // 頁籤
 // 全部頁籤定義（固定索引）
 // 頁籤
-const tabs = ['D5申請單','機加工(耗用)_version1','機加工(產出)_version1','鍍膜(耗用)','鍍膜(產出)','純化(耗用)','純化(產出)','品檢資訊']
+const tabs = ['D5申請單','機加工(耗用)_version1','機加工(產出)_version1','機加工(耗用)_version2','機加工(產出)_version2','鍍膜(耗用)','鍍膜(產出)','純化(耗用)','純化(產出)','品檢資訊']
 const activeTab = ref(0)
 
 // 訊息
@@ -316,7 +337,7 @@ const CUSTOMERS = [
 ]
 
 // 製程 / 區塊 中文對照
-const PROC_NAME = { machining:'機加工', coating:'鍍膜', purification:'純化' }
+const PROC_NAME = { machining:'機加工', machining2:'機加工', coating:'鍍膜', purification:'純化' }
 const SEC_NAME  = { self:'自產', outsource:'委外' }
 
 // 寫入系統 LOG（同 key 只記錄一次）
@@ -339,10 +360,10 @@ function procCount(proc, type) {
 const visibleTabIndices = computed(() => {
   const idx = [0]
   if (d5.id) {
-    if (d5.typeMachining)    idx.push(1, 2)
-    if (d5.typeCoating)      idx.push(3, 4)
-    if (d5.typePurification) idx.push(5, 6)
-    idx.push(7) // 品檢資訊
+    if (d5.typeMachining)    idx.push(1, 2, 3, 4)
+    if (d5.typeCoating)      idx.push(5, 6)
+    if (d5.typePurification) idx.push(7, 8)
+    idx.push(9) // 品檢資訊
   }
   return idx
 })
@@ -368,10 +389,11 @@ function d5FileChange(e) { d5.attachmentName = e.target.files[0]?.name || '' }
 // 各製程資料
 function mkProc() { return { consumption:{self:[], outsource:[]}, output:{self:[], outsource:[]} } }
 const machining    = reactive(mkProc())
+const machining2   = reactive({ consumption: [], output: [] }) // flat（含 execMode）
 const coating      = reactive(mkProc())
 const purification = reactive(mkProc())
 
-const getProc = n => ({machining,coating,purification}[n])
+const getProc = n => ({machining, coating, purification}[n])
 
 // 庫別代碼對照
 const WAREHOUSE_LABEL = { BB:'碳材料生產工廠', BBPN:'D8屏南儲區', BBOUTTMP:'委外暫存庫' }
@@ -394,7 +416,7 @@ function getBaseInv() {
 }
 
 const filteredInv = ref([...allInv])
-const picker = reactive({ show:false, keyword:'', selIds: new Set(), proc:'', section:'' })
+const picker = reactive({ show:false, keyword:'', selIds: new Set(), proc:'', section:'', execMode:'' })
 function filterInv() {
   const kw = picker.keyword.toLowerCase()
   filteredInv.value = getBaseInv().filter(i =>
@@ -411,24 +433,40 @@ function pickerToggleAll(checked) {
   if (checked) filteredInv.value.forEach((_, i) => picker.selIds.add(i))
 }
 function openPicker({ section }, procName) {
-  picker.proc = procName; picker.section = section
+  picker.proc = procName; picker.section = section; picker.execMode = ''
   picker.keyword = ''; picker.selIds.clear()
+  filteredInv.value = getBaseInv()
+  picker.show = true
+}
+// v2 耗用：依 execMode 決定庫存篩選（01→自產=BB, 02→委外=排BBPN）
+function openPickerV2({ execMode }) {
+  picker.proc = 'machining2'
+  picker.execMode = execMode
+  picker.section  = execMode === '01' ? 'self' : 'outsource' // 供 getBaseInv 判斷
+  picker.keyword  = ''; picker.selIds.clear()
   filteredInv.value = getBaseInv()
   picker.show = true
 }
 function confirmPicker() {
   if (!picker.selIds.size) { showMsg('請先勾選庫存項目', 'error'); return }
-  const arr = getProc(picker.proc).consumption[picker.section]
   const names = []
-  picker.selIds.forEach(i => {
-    const inv = filteredInv.value[i]
-    arr.push({ id: Date.now() + i, ...inv })
-    names.push(inv.itemName)
-  })
+  if (picker.proc === 'machining2') {
+    picker.selIds.forEach(i => {
+      const inv = filteredInv.value[i]
+      machining2.consumption.push({ id: Date.now() + i, ...inv, execMode: picker.execMode })
+      names.push(inv.itemName)
+    })
+  } else {
+    const arr = getProc(picker.proc).consumption[picker.section]
+    picker.selIds.forEach(i => {
+      const inv = filteredInv.value[i]
+      arr.push({ id: Date.now() + i, ...inv })
+      names.push(inv.itemName)
+    })
+  }
   const count = picker.selIds.size
   picker.show = false
-  const logKey = `consumption-${picker.proc}`
-  addLog(`輸入【${PROC_NAME[picker.proc]}(耗用)】`, 'input', logKey)
+  addLog(`輸入【${PROC_NAME[picker.proc]}(耗用)】`, 'input', `consumption-${picker.proc}`)
   showMsg(`已確認耗用 ${count} 筆：${names.join('、')}`, 'success')
   picker.selIds.clear()
 }
@@ -438,6 +476,31 @@ function cancelConsumption(procName, { section, ids }) {
   arr.splice(0, arr.length, ...arr.filter(r => !idSet.has(r.id)))
   if (procCount(procName, 'consumption') === 0) removeLog(`consumption-${procName}`)
   showMsg(`已取消 ${idSet.size} 筆耗用`, 'info')
+}
+// v2 耗用取消（flat）
+function handleM2ConsumptionCancel({ ids }) {
+  const idSet = new Set(ids)
+  machining2.consumption.splice(0, machining2.consumption.length,
+    ...machining2.consumption.filter(r => !idSet.has(r.id)))
+  if (!machining2.consumption.length) removeLog('consumption-machining2')
+  showMsg(`已取消 ${idSet.size} 筆耗用`, 'info')
+}
+// v2 產出（flat）
+function handleM2OutputAdd(row) {
+  machining2.output.push({ ...row, id: Date.now() })
+  addLog('輸入【機加工(產出)】', 'input', 'output-machining2')
+  showMsg('產出明細已新增', 'success')
+}
+function handleM2OutputUpdate({ idx, row }) {
+  machining2.output[idx] = { ...row, id: machining2.output[idx].id }
+  showMsg('產出明細已修改', 'success')
+}
+function handleM2OutputDelete({ ids }) {
+  const idSet = new Set(ids)
+  machining2.output.splice(0, machining2.output.length,
+    ...machining2.output.filter(r => !idSet.has(r.id)))
+  if (!machining2.output.length) removeLog('output-machining2')
+  showMsg(`已刪除 ${idSet.size} 筆產出明細`, 'info')
 }
 
 // 產出明細處理（行內新增/修改/刪除）
@@ -456,19 +519,17 @@ const qualityData = reactive({})
 
 // 批號總覽：收集各製程產出的所有批號（去重、過濾空值）
 const lotOverview = computed(() => {
-  const entries = [
-    { proc: '機加工', data: machining.output },
-    { proc: '鍍膜',   data: coating.output   },
-    { proc: '純化',   data: purification.output },
-  ]
-  return entries.reduce((acc, { proc, data }) => {
-    const lots = [...new Set(
-      [...data.self, ...data.outsource]
-        .map(r => r.lotNo).filter(Boolean)
-    )]
-    if (lots.length) acc.push({ proc, lots: lots.join('、') })
-    return acc
-  }, [])
+  const procMap = new Map()
+  const addLots = (proc, rows) => rows.forEach(r => {
+    if (!r.lotNo) return
+    if (!procMap.has(proc)) procMap.set(proc, new Set())
+    procMap.get(proc).add(r.lotNo)
+  })
+  addLots('機加工', [...machining.output.self, ...machining.output.outsource])
+  addLots('機加工', machining2.output)
+  addLots('鍍膜',   [...coating.output.self,   ...coating.output.outsource])
+  addLots('純化',   [...purification.output.self, ...purification.output.outsource])
+  return [...procMap.entries()].map(([proc, lots]) => ({ proc, lots: [...lots].join('、') }))
 })
 
 const allLots = computed(() => {
@@ -484,7 +545,13 @@ const allLots = computed(() => {
     })
   }
   collect('machining', '機加工')
-  collect('coating',   '鍍膜')
+  machining2.output.forEach(row => {
+    if (row.lotNo && !seen.has(row.lotNo)) {
+      seen.add(row.lotNo)
+      lots.push({ lotNo: row.lotNo, productKey: row.productKey, procName: '機加工', section: row.execMode === '01' ? '自產' : '委外' })
+    }
+  })
+  collect('coating',    '鍍膜')
   collect('purification', '純化')
   return lots
 })
@@ -590,6 +657,21 @@ function handleOutputDelete(proc, { section, ids }) {
 /* 頁籤內容 */
 .tab-content { flex:1; padding:12px; }
 .tab-panel   { background:#fff; border:1px solid #b0c4de; border-radius:0 4px 4px 4px; }
+
+/* 執行方式選擇列（version2 產出） */
+.mode-bar {
+  background: #eef4ff; border-bottom: 1px solid #b8cfe8;
+  padding: 7px 14px; display: flex; align-items: center; gap: 10px;
+}
+.mode-label {
+  background: #5a7ec8; color: #fff;
+  padding: 2px 10px; border-radius: 3px; font-size: 12px; white-space: nowrap;
+}
+.mode-select {
+  padding: 3px 10px; border: 1px solid #b0c4de; border-radius: 3px;
+  font-size: 13px; font-family: inherit; background: #fff; color: #1a3a6e;
+  cursor: pointer;
+}
 
 /* 工具列 */
 .panel-toolbar {
