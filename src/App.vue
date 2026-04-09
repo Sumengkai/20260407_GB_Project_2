@@ -52,6 +52,19 @@
           <button v-if="!d5.id" class="btn btn-primary" @click="d5Create">新增</button>
           <button v-else class="btn btn-warn" @click="d5Update">修改</button>
         </div>
+
+        <!-- 機加工版本選擇（右下角） -->
+        <div class="version-box">
+          <div class="version-title">機加工版本</div>
+          <label class="version-chk">
+            <input type="checkbox" v-model="enableMachiningV1" />
+            <span>啟用 version1</span>
+          </label>
+          <label class="version-chk">
+            <input type="checkbox" v-model="enableMachiningV2" />
+            <span>啟用 version2</span>
+          </label>
+        </div>
         <div class="form-grid">
           <div class="form-row">
             <div class="form-cell lbl req-lbl">交期 *</div>
@@ -298,7 +311,9 @@ const currentDate = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,
 // 全部頁籤定義（固定索引）
 // 頁籤
 const tabs = ['D5申請單','機加工(耗用)_version1','機加工(產出)_version1','機加工(耗用)_version2','機加工(產出)_version2','鍍膜(耗用)','鍍膜(產出)','純化(耗用)','純化(產出)','品檢資訊']
-const activeTab = ref(0)
+const activeTab        = ref(0)
+const enableMachiningV1 = ref(true)
+const enableMachiningV2 = ref(false)
 
 // 訊息
 const message = reactive({ text: '歡迎使用本系統...', type: 'info' })
@@ -360,7 +375,10 @@ function procCount(proc, type) {
 const visibleTabIndices = computed(() => {
   const idx = [0]
   if (d5.id) {
-    if (d5.typeMachining)    idx.push(1, 2, 3, 4)
+    if (d5.typeMachining) {
+      if (enableMachiningV1.value) idx.push(1, 2)
+      if (enableMachiningV2.value) idx.push(3, 4)
+    }
     if (d5.typeCoating)      idx.push(5, 6)
     if (d5.typePurification) idx.push(7, 8)
     idx.push(9) // 品檢資訊
@@ -657,6 +675,20 @@ function handleOutputDelete(proc, { section, ids }) {
 /* 頁籤內容 */
 .tab-content { flex:1; padding:12px; }
 .tab-panel   { background:#fff; border:1px solid #b0c4de; border-radius:0 4px 4px 4px; }
+
+.version-box {
+  position: fixed; bottom: 12px; right: 12px; z-index: 500;
+  border: 1px solid #b0c4de; border-radius: 6px;
+  background: #f4f8ff; padding: 10px 14px;
+  display: flex; flex-direction: column; gap: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.08);
+}
+.version-title {
+  font-size: 11px; font-weight: bold; color: #3a6abf;
+  letter-spacing: .5px; margin-bottom: 2px;
+}
+.version-chk { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; }
+.version-chk input { cursor: pointer; }
 
 /* 執行方式選擇列（version2 產出） */
 .mode-bar {
