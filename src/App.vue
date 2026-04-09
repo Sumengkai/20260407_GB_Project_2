@@ -310,7 +310,7 @@ const currentDate = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,
 // 頁籤
 // 全部頁籤定義（固定索引）
 // 頁籤
-const tabs = ['D5申請單','機加工(耗用)_version1','機加工(產出)_version1','機加工(耗用)_version2','機加工(產出)_version2','鍍膜(耗用)','鍍膜(產出)','純化(耗用)','純化(產出)','品檢資訊']
+const tabs = ['D5申請單','機加工(耗用)','機加工(產出)','機加工(耗用)_version2','機加工(產出)_version2','鍍膜(耗用)','鍍膜(產出)','純化(耗用)','純化(產出)','品檢資訊']
 const activeTab        = ref(0)
 const enableMachiningV1 = ref(true)
 const enableMachiningV2 = ref(false)
