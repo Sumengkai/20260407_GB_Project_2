@@ -573,7 +573,7 @@ function handleOutputDelete(proc, { section, ids }) {
 </script>
 
 <style scoped>
-.erp-app { min-height:100vh; display:flex; flex-direction:column; background:#dce6f0; font-size:13px; }
+.erp-app { min-height:100vh; display:flex; flex-direction:column; background:#fff; font-size:13px; }
 
 /* 頁首 */
 .page-header {
@@ -649,10 +649,10 @@ function handleOutputDelete(proc, { section, ids }) {
 .tab-btn {
   padding:5px 14px; font-size:13px; font-family:inherit;
   border:1px solid #7a9ac8; border-bottom:none; border-radius:4px 4px 0 0;
-  background:#d0e0f0; color:#1a3a6e; cursor:pointer; transition:background .15s;
+  background:#d0e0f0; color:#000; cursor:pointer; transition:background .15s;
 }
-.tab-btn:hover  { background:#e0ecf8; }
-.tab-btn.active { background:#fff; font-weight:bold; border-color:#3a6abf; }
+.tab-btn:hover  { background:#e0ecf8; color:#000; }
+.tab-btn.active { background:#fff; font-weight:bold; border-color:#3a6abf; color:#000; }
 
 /* 頁籤內容 */
 .tab-content { flex:1; padding:12px; }

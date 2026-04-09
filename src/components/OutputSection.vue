@@ -7,6 +7,9 @@
       <button class="btn btn-danger" :disabled="checkedIds.size === 0" @click="handleDelete">
         刪除<span v-if="checkedIds.size" class="badge">{{ checkedIds.size }}</span>
       </button>
+      <div class="bar-divider"></div>
+      <button v-if="label === '委外'" class="btn btn-teal"  @click="openModal('模擬移庫視窗')">打開視窗做移庫</button>
+      <button v-if="label === '自產'" class="btn btn-green" @click="openModal('模擬入庫視窗')">打開視窗做入庫</button>
     </div>
 
     <div class="table-wrap">
@@ -63,18 +66,26 @@
         </tbody>
       </table>
     </div>
+
+  <!-- Modal -->
+  <div v-if="modalText" class="sim-overlay" @click.self="modalText = ''">
+    <div class="sim-box">
+      <span class="sim-title">{{ modalText }}</span>
+      <button class="sim-close" @click="modalText = ''">✕</button>
+    </div>
+  </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, watch } from 'vue'
+import { ref, reactive, watch } from 'vue'
 
 const props = defineProps({
   label:      { type: String,  default: '' },
   colorClass: { type: String,  default: '' },
   rows:       { type: Array,   default: () => [] },
 })
-const emit = defineEmits(['add', 'update', 'delete-items'])
+const emit = defineEmits(['add', 'update', 'delete-items', 'open-transfer', 'open-inbound'])
 
 const PRODUCTS = [
   { key: 'ACS15U', label: 'ACS15U - 超級電容ACS15U' },
@@ -148,6 +159,9 @@ function handleDelete() {
   emit('delete-items', [...checkedIds])
   checkedIds.clear()
 }
+
+const modalText = ref('')
+function openModal(text) { modalText.value = text }
 </script>
 
 <style scoped>
@@ -186,5 +200,16 @@ function handleDelete() {
 .btn-light:hover { background:#e8f0ff; }
 .btn-warn    { background:#e67e22; color:#fff; border-color:#ca6f1e; }
 .btn-danger  { background:#c0392b; color:#fff; border-color:#a93226; }
+.btn-teal    { background:#fff; color:#000; border-color:rgba(255,255,255,.7); }
+.btn-teal:hover  { background:#e8f0ff; }
+.btn-green   { background:#fff; color:#000; border-color:rgba(255,255,255,.7); }
+.btn-green:hover { background:#e8f0ff; }
+.bar-divider { width:1px; background:rgba(255,255,255,.4); margin:0 6px; align-self:stretch; }
 .badge { background:rgba(255,255,255,.9); color:#c0392b; font-size:11px; font-weight:bold; padding:0 5px; border-radius:8px; min-width:16px; text-align:center; }
+
+.sim-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
+.sim-box     { background:#fff; border-radius:8px; padding:60px 80px; text-align:center; position:relative; box-shadow:0 8px 32px rgba(0,0,0,.25); }
+.sim-title   { font-size:36px; font-weight:bold; color:#1a3a6e; }
+.sim-close   { position:absolute; top:12px; right:16px; background:none; border:none; font-size:18px; cursor:pointer; color:#888; }
+.sim-close:hover { color:#333; }
 </style>
