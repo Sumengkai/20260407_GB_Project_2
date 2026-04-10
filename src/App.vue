@@ -361,9 +361,15 @@ function doQuery() {
 }
 
 // D5 資料（欄位直接開放輸入，按新增完成建檔）
+const defaultDeliveryDate = (() => {
+  const d = new Date()
+  d.setMonth(d.getMonth() + 1)
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+})()
+
 const d5 = reactive({
   id: null,
-  deliveryDate:'', attachmentName:'',
+  deliveryDate: defaultDeliveryDate, attachmentName:'',
   typeMachining:false, typeCoating:false, typePurification:false,
   furnaceNo:'', cost:null, customer:'', remark:'', clientMaterial:'', sysLog:[]
 })
