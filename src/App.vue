@@ -125,6 +125,28 @@
             </div>
           </div>
           <div class="form-row">
+            <div class="form-cell lbl sys-lbl">工單清單</div>
+            <div class="form-cell inp c3">
+              <div class="wo-list">
+                <div v-if="!workOrderList.length" class="wo-empty">— 尚無工單（各製程有耗用/產出明細時自動生成）—</div>
+                <table v-else class="dtable">
+                  <thead>
+                    <tr>
+                      <th>工單號</th><th>製程</th><th>執行方式</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="wo in workOrderList" :key="wo.key">
+                      <td class="wo-no">{{ wo.no }}</td>
+                      <td>{{ wo.proc }}</td>
+                      <td><span :class="['wo-badge', wo.execType === '自產' ? 'badge-self' : 'badge-out']">{{ wo.execType }}</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
             <div class="form-cell lbl sys-lbl">系統備註</div>
             <div class="form-cell inp c3">
               <div class="sys-log">
@@ -410,6 +432,63 @@ const coating      = reactive(mkProc())
 const purification = reactive(mkProc())
 
 const getProc = n => ({machining, coating, purification}[n])
+
+// ===== 工單管理 =====
+const workOrders = reactive({})
+
+function genWorkOrderNo() {
+  const ym = `${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}`
+  return `WO-${ym}-${String(Math.floor(Math.random()*9000)+1000)}`
+}
+
+function ensureWorkOrder(key, proc, execType) {
+  if (!workOrders[key]) {
+    workOrders[key] = { no: genWorkOrderNo(), proc, execType }
+    addLog(`生成【${proc}(${execType})】工單：${workOrders[key].no}`, 'create', `wo-${key}`)
+  }
+}
+
+function removeWorkOrder(key) {
+  if (workOrders[key]) {
+    removeLog(`wo-${key}`)
+    delete workOrders[key]
+  }
+}
+
+// 各製程×執行方式有無明細的 computed
+const hasMachSelf = computed(() =>
+  machining.consumption.self.length > 0 || machining.output.self.length > 0 ||
+  machining2.consumption.some(r => r.execMode === '01') ||
+  machining2.output.some(r => r.execMode === '01')
+)
+const hasMachOut = computed(() =>
+  machining.consumption.outsource.length > 0 || machining.output.outsource.length > 0 ||
+  machining2.consumption.some(r => r.execMode === '02') ||
+  machining2.output.some(r => r.execMode === '02')
+)
+const hasCoatSelf = computed(() =>
+  coating.consumption.self.length > 0 || coating.output.self.length > 0
+)
+const hasCoatOut = computed(() =>
+  coating.consumption.outsource.length > 0 || coating.output.outsource.length > 0
+)
+const hasPureSelf = computed(() =>
+  purification.consumption.self.length > 0 || purification.output.self.length > 0
+)
+const hasPureOut = computed(() =>
+  purification.consumption.outsource.length > 0 || purification.output.outsource.length > 0
+)
+
+// 有明細 → 自動生成工單；清空 → 移除工單
+watch(hasMachSelf, v => v ? ensureWorkOrder('machining-self', '機加工', '自產') : removeWorkOrder('machining-self'))
+watch(hasMachOut,  v => v ? ensureWorkOrder('machining-out',  '機加工', '委外') : removeWorkOrder('machining-out'))
+watch(hasCoatSelf, v => v ? ensureWorkOrder('coating-self',   '鍍膜',   '自產') : removeWorkOrder('coating-self'))
+watch(hasCoatOut,  v => v ? ensureWorkOrder('coating-out',    '鍍膜',   '委外') : removeWorkOrder('coating-out'))
+watch(hasPureSelf, v => v ? ensureWorkOrder('purification-self', '純化', '自產') : removeWorkOrder('purification-self'))
+watch(hasPureOut,  v => v ? ensureWorkOrder('purification-out',  '純化', '委外') : removeWorkOrder('purification-out'))
+
+// 工單清單（供 D5 tab 顯示）
+const workOrderList = computed(() => Object.entries(workOrders).map(([key, wo]) => ({ key, ...wo })))
 
 // 庫別代碼對照
 const WAREHOUSE_LABEL = { BB:'碳材料生產工廠', BBPN:'D8屏南儲區', BBOUTTMP:'委外暫存庫' }
@@ -763,6 +842,17 @@ function handleOutputDelete(proc, { section, ids }) {
 .log-entry.info    .log-msg { color: #333; }
 .sec-header { background:#4a7abf; color:#fff; font-weight:bold; font-size:12px; padding:4px 12px; }
 .req-lbl { color:#c0392b; }
+
+/* 工單清單 */
+.wo-list {
+  width: 100%; background: #f5f9ff; border: 1px solid #d0dce8;
+  border-radius: 3px; padding: 5px 8px; min-height: 32px;
+}
+.wo-empty { color: #aaa; font-style: italic; font-size: 12px; padding: 4px; }
+.wo-no    { font-family: monospace; font-weight: bold; color: #1a3a6e; }
+.wo-badge { display: inline-block; padding: 1px 8px; border-radius: 8px; font-size: 11px; font-weight: bold; }
+.badge-self { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.badge-out  { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
 
 /* 輸入元件 */
 .f-input {
