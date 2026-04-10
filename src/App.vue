@@ -119,6 +119,25 @@
             </div>
           </div>
           <div class="form-row">
+            <div class="form-cell lbl">鎖料批號</div>
+            <div class="form-cell inp c3">
+              <table class="dtable lock-table">
+                <thead>
+                  <tr><th>批號</th><th>品號</th><th>品名</th><th>數量</th><th>單位</th></tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(r, i) in d5.lockedLots" :key="i">
+                    <td>{{ r.lotNo }}</td><td>{{ r.itemNo }}</td><td>{{ r.itemName }}</td>
+                    <td>{{ r.qty }}</td><td>{{ r.unit }}</td>
+                  </tr>
+                  <tr v-if="!d5.lockedLots.length">
+                    <td colspan="5" class="empty-row">— 尚無鎖料批號 —</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="form-row">
             <div class="form-cell lbl sys-lbl">產出批號總覽</div>
             <div class="form-cell inp c3">
               <div class="lot-overview">
@@ -371,7 +390,12 @@ const d5 = reactive({
   id: null,
   deliveryDate: defaultDeliveryDate, attachmentName:'',
   typeMachining:false, typeCoating:false, typePurification:false,
-  furnaceNo:'', cost:null, customer:'', remark:'', clientMaterial:'', sysLog:[]
+  furnaceNo:'', cost:null, customer:'', remark:'', clientMaterial:'', sysLog:[],
+  lockedLots: [
+    { lotNo:'GB-001', itemNo:'ACS15U', itemName:'超級電容ACS15U',  qty:100, unit:'kg'  },
+    { lotNo:'GB-003', itemNo:'CB-050', itemName:'碳微球CB-050',     qty:50,  unit:'kg'  },
+    { lotNo:'GB-005', itemNo:'MC-200', itemName:'機加工碳塊MC-200', qty:20,  unit:'pcs' },
+  ]
 })
 
 // 客戶下拉資料
@@ -860,6 +884,7 @@ function handleOutputDelete(proc, { section, ids }) {
   width: 100%; background: #f5f9ff; border: 1px solid #d0dce8;
   border-radius: 3px; padding: 5px 8px; min-height: 32px;
 }
+.lock-table { width: auto; min-width: 360px; }
 .wo-empty { color: #aaa; font-style: italic; font-size: 12px; padding: 4px; }
 .wo-no    { font-family: monospace; font-weight: bold; color: #1a3a6e; }
 .wo-badge { display: inline-block; padding: 1px 8px; border-radius: 8px; font-size: 11px; font-weight: bold; }
