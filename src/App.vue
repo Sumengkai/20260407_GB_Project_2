@@ -113,6 +113,12 @@
             </div>
           </div>
           <div class="form-row">
+            <div class="form-cell lbl">客供料</div>
+            <div class="form-cell inp c3">
+              <textarea v-model="d5.clientMaterial" class="f-textarea" rows="2" placeholder="請輸入客供料說明"></textarea>
+            </div>
+          </div>
+          <div class="form-row">
             <div class="form-cell lbl sys-lbl">產出批號總覽</div>
             <div class="form-cell inp c3">
               <div class="lot-overview">
@@ -359,7 +365,7 @@ const d5 = reactive({
   id: null,
   deliveryDate:'', attachmentName:'',
   typeMachining:false, typeCoating:false, typePurification:false,
-  furnaceNo:'', cost:null, customer:'', remark:'', sysLog:[]
+  furnaceNo:'', cost:null, customer:'', remark:'', clientMaterial:'', sysLog:[]
 })
 
 // 客戶下拉資料
