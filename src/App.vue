@@ -374,15 +374,13 @@ function procCount(proc, type) {
 // 依委託類型動態顯示頁籤（需在 d5 定義後）
 const visibleTabIndices = computed(() => {
   const idx = [0]
-  if (d5.id) {
-    if (d5.typeMachining) {
-      if (enableMachiningV1.value) idx.push(1, 2)
-      if (enableMachiningV2.value) idx.push(3, 4)
-    }
-    if (d5.typeCoating)      idx.push(5, 6)
-    if (d5.typePurification) idx.push(7, 8)
-    idx.push(9) // 品檢資訊
+  if (d5.typeMachining) {
+    if (enableMachiningV1.value) idx.push(1, 2)
+    if (enableMachiningV2.value) idx.push(3, 4)
   }
+  if (d5.typeCoating)      idx.push(5, 6)
+  if (d5.typePurification) idx.push(7, 8)
+  if (d5.typeMachining || d5.typeCoating || d5.typePurification) idx.push(9) // 品檢資訊
   return idx
 })
 watch(visibleTabIndices, (newList) => {
